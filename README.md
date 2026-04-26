@@ -1,6 +1,12 @@
-# greenBuilding
-Repository Migration Notice: This repository is the new official home for the Green Building project. Due to a configuration error in the previous repository's .gitignore that led to a security vulnerability, the original history has been archived privately. This repo contains the sanitized, final codebase with fresh security configurations.
+# Green Building Project
 
+> [!IMPORTANT]
+> **Repository Migration Notice:** This repository is the new official home for the Green Building project. Due to a configuration error in the previous repository's .gitignore that led to a security vulnerability, the original history has been archived privately. This repo contains the sanitized, final codebase with fresh security configurations.
+
+## Sanitized Commit History
+
+| Date & Time | Commit Hash | Message |
+| :--- | :--- | :--- |
 | 2026-04-26 19:32 | 08516ad888a6e701196050f350402a9b3caa5d5a | final code review |
 | 2026-04-26 19:23 | 01584bdfd69725f419acb4bbaebaa017a90ee59b | creds to .env |
 | 2026-04-26 19:05 | a265e40cc2ab3dae2ca6ffdf0aaa9dc9e63f3c22 | feat: add Badge component and integrate into AdminDashboard |
