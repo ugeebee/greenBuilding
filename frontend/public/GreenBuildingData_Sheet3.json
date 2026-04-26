@@ -1,0 +1,277 @@
+[
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick: solid, unplastered 114 mm",
+        "U-Value ":3.64
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick: solid, plastered both sides 114 mm",
+        "U-Value ":3.24
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Concrete, ordinary, dense 152 mm",
+        "U-Value ":2.47
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Concrete, ordinary, dense 203 mm",
+        "U-Value ":2.44
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Stone, medium porous 305 mm",
+        "U-Value ":3.18
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Stone, medium porous 457 mm",
+        "U-Value ":2.84
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick 280 mm cavity, felt on outer skin, commons inner, inside plastered",
+        "U-Value ":1.7
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick with insulating boards, plastered",
+        "U-Value ":0.85
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"25 mm corkboard",
+        "U-Value ":1.19
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"13 mm fibreboard",
+        "U-Value ":0.85
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"50 mm straw or wood wool slab",
+        "U-Value ":1.47
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick with 16 mm vermiculite plaster on inside",
+        "U-Value ":1.19
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick with rigid boards on battens inside",
+        "U-Value ":0.95
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"13 mm asbestos board",
+        "U-Value ":0.74
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"13 mm fibreboard",
+        "U-Value ":1.13
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"50 mm strawboard, plastered",
+        "U-Value ":1.08
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Brick with inner skin lightweight concrete blocks",
+        "U-Value ":1.19
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"100 mm aerated concrete blocks",
+        "U-Value ":1.08
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Concrete blocks",
+        "U-Value ":1.7
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"100 mm clinker concrete blocks",
+        "U-Value ":1.59
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Concrete block, cavity, 250 mm (100 + 50 + 100), outside rendered, inside plastered",
+        "U-Value ":2.04
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"aerated concrete blocks",
+        "U-Value ":1.19
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"clinker concrete blocks",
+        "U-Value ":2.1
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Hollow concrete block, 228 mm, single skin, outside rendered, inside plastered",
+        "U-Value ":2.16
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"aerated concrete blocks",
+        "U-Value ":1.25
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"clinker concrete blocks",
+        "U-Value ":0.85
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"Corrugated asbestos cement sheets on steel frame",
+        "U-Value ":6.53
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"with 13 mm fibreboard",
+        "U-Value ":2.04
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"with 50 mm straw or wood wool slab",
+        "U-Value ":1.19
+    },
+    {
+        "Category":"Walls",
+        "Type of Construction":"with 76 mm aerated concrete blocks",
+        "U-Value ":7.95
+    },
+    {
+        "Category":"Roofs, pitched",
+        "Type of Construction":"Corrugated iron sheets or tiles on battens with plaster ceiling",
+        "U-Value ":1.08
+    },
+    {
+        "Category":"Roofs, pitched",
+        "Type of Construction":"Tiles or slates on boarding and felt with plaster ceiling",
+        "U-Value ":0.95
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"Corrugated iron sheets or tiles on battens with plaster ceiling",
+        "U-Value ":8.52
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"Tiles or slates on boarding and felt with plaster ceiling",
+        "U-Value ":3.18
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"Reinforced concrete slab, 100 mm, screed 63\u201312 mm, 3 layers of bitumen felt",
+        "U-Value ":3.35
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with insulation on screed 25 mm cork",
+        "U-Value ":1.08
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with insulation on screed 50 mm straw or wood wool slab",
+        "U-Value ":1.25
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with insulation on screed two 12 mm fibre boards",
+        "U-Value ":1.13
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with lightweight screed",
+        "U-Value ":1.36
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with 127 mm to 76 mm aerated concrete",
+        "U-Value ":1.47
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with 127 mm to 76 mm slag concrete",
+        "U-Value ":1.82
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"Timber boarding, 25 mm on 178 mm joists with 3 layers of bitumen felt, plaster ceiling",
+        "U-Value ":2.5
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"As above with insulation slabs on boarding",
+        "U-Value ":0.85
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"25 mm cork",
+        "U-Value ":1.25
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"13 mm fibreboard",
+        "U-Value ":0.91
+    },
+    {
+        "Category":"Roofs, flat",
+        "Type of Construction":"50 mm straw or wood wool slab",
+        "U-Value ":1.13
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"Concrete on ground or hardcore fill with grano, terrazzo or tile finish",
+        "U-Value ":0.85
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with wood block finish",
+        "U-Value ":1.42
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"Timber board on joists, underfloor space ventilated on more sides",
+        "U-Value ":0.79
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with parquet, lino or rubber finish",
+        "U-Value ":0.85
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with 25 mm fibreboard under boarding",
+        "U-Value ":1.08
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with 25 mm corkboard under boarding",
+        "U-Value ":0.95
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with 25 mm corkboard under joists",
+        "U-Value ":1.98
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with 50 mm strawboard under joists",
+        "U-Value ":1.08
+    },
+    {
+        "Category":"Floors",
+        "Type of Construction":"with double sided aluminium foil, draped",
+        "U-Value ":0.85
+    }
+]

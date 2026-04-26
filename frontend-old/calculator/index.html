@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Physics Data Collector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wizard-container">
+    <div class="header">
+        <h1>Room Data Collector</h1>
+        <div class="progress-container">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 25%;"></div></div>
+            <div class="progress-text" id="progress-text">Step 1 of 4: Dimensions & Materials</div>
+        </div>
+    </div>
+
+    <div class="page active" id="page-1">
+        <div class="section-card">
+            <h3>Room Geometry</h3>
+            <div class="form-grid-3">
+                <div class="input-group">
+                    <label>Length (L)</label> 
+                    <div class="input-with-unit">
+                        <input type="number" step="0.01" id="length" required>
+                        <select id="unit-length"><option value="m">m</option><option value="mm">mm</option><option value="ft">ft</option></select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Breadth (B)</label> 
+                    <div class="input-with-unit">
+                        <input type="number" step="0.01" id="breadth" required>
+                        <select id="unit-breadth"><option value="m">m</option><option value="mm">mm</option><option value="ft">ft</option></select>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Height (H)</label> 
+                    <div class="input-with-unit">
+                        <input type="number" step="0.01" id="height" required>
+                        <select id="unit-height"><option value="m">m</option><option value="mm">mm</option><option value="ft">ft</option></select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualizer-container">
+                <h4 style="margin-top:0; color:var(--text-muted);">Room Visualization</h4>
+                <div id="cuboid-scene">
+                    <div id="cuboid" style="display: none;">
+                        <div class="face front">Front</div>
+                        <div class="face back">Back</div>
+                        <div class="face right">Right</div>
+                        <div class="face left">Left</div>
+                        <div class="face top">Roof</div>
+                        <div class="face bottom">Floor</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <h3>Wall & Floor Materials</h3>
+            <div class="materials-grid">
+                <div class="mat-group">
+                    <label class="mat-title">Outer Wall</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="type-wall-outer" value="standard" checked onchange="toggleMatType('wall-outer')"> Standard</label>
+                        <label><input type="radio" name="type-wall-outer" value="custom" onchange="toggleMatType('wall-outer')"> Custom</label>
+                    </div>
+                    <div id="std-wall-outer" class="mat-input-area"><select id="sel-wall-outer" class="mat-select"></select><input type="number" step="0.01" id="width-std-wall-outer" placeholder="Width (m)"></div>
+                    <div id="cust-wall-outer" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-wall-outer" placeholder="Custom Name"><input type="number" step="0.01" id="width-cust-wall-outer" placeholder="Width (m)"><input type="number" step="0.01" id="k-cust-wall-outer" placeholder="Thermal Cond. (k)"></div>
+                </div>
+                <div class="mat-group">
+                    <label class="mat-title">Central Wall</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="type-wall-central" value="standard" checked onchange="toggleMatType('wall-central')"> Standard</label>
+                        <label><input type="radio" name="type-wall-central" value="custom" onchange="toggleMatType('wall-central')"> Custom</label>
+                    </div>
+                    <div id="std-wall-central" class="mat-input-area"><select id="sel-wall-central" class="mat-select"></select><input type="number" step="0.01" id="width-std-wall-central" placeholder="Width (m)"></div>
+                    <div id="cust-wall-central" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-wall-central" placeholder="Custom Name"><input type="number" step="0.01" id="width-cust-wall-central" placeholder="Width (m)"><input type="number" step="0.01" id="k-cust-wall-central" placeholder="Thermal Cond. (k)"></div>
+                </div>
+                <div class="mat-group">
+                    <label class="mat-title">Inner Wall</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="type-wall-inner" value="standard" checked onchange="toggleMatType('wall-inner')"> Standard</label>
+                        <label><input type="radio" name="type-wall-inner" value="custom" onchange="toggleMatType('wall-inner')"> Custom</label>
+                    </div>
+                    <div id="std-wall-inner" class="mat-input-area"><select id="sel-wall-inner" class="mat-select"></select><input type="number" step="0.01" id="width-std-wall-inner" placeholder="Width (m)"></div>
+                    <div id="cust-wall-inner" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-wall-inner" placeholder="Custom Name"><input type="number" step="0.01" id="width-cust-wall-inner" placeholder="Width (m)"><input type="number" step="0.01" id="k-cust-wall-inner" placeholder="Thermal Cond. (k)"></div>
+                </div>
+                <div class="mat-group">
+                    <label class="mat-title">Floor</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="type-floor" value="standard" checked onchange="toggleMatType('floor')"> Standard</label>
+                        <label><input type="radio" name="type-floor" value="custom_wk" onchange="toggleMatType('floor')"> Custom (W&k)</label>
+                        <label><input type="radio" name="type-floor" value="custom_u" onchange="toggleMatType('floor')"> Custom (U)</label>
+                    </div>
+                    <div id="std-floor" class="mat-input-area"><select id="sel-floor" class="mat-select"></select><input type="number" step="0.01" id="width-std-floor" placeholder="Width (m)"></div>
+                    <div id="cust-wk-floor" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-wk-floor" placeholder="Custom Name"><input type="number" step="0.01" id="width-cust-wk-floor" placeholder="Width (m)"><input type="number" step="0.01" id="k-cust-wk-floor" placeholder="Thermal Cond. (k)"></div>
+                    <div id="cust-u-floor" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-u-floor" placeholder="Custom Name"><input type="number" step="0.01" id="u-cust-u-floor" placeholder="U-Value (W/m²K)"></div>
+                </div>
+                <div class="mat-group">
+                    <label class="mat-title">Roof</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="type-roof" value="standard" checked onchange="toggleMatType('roof')"> Standard</label>
+                        <label><input type="radio" name="type-roof" value="custom_wk" onchange="toggleMatType('roof')"> Custom (W&k)</label>
+                        <label><input type="radio" name="type-roof" value="custom_u" onchange="toggleMatType('roof')"> Custom (U)</label>
+                    </div>
+                    <div id="std-roof" class="mat-input-area"><select id="sel-roof" class="mat-select"></select><input type="number" step="0.01" id="width-std-roof" placeholder="Width (m)"></div>
+                    <div id="cust-wk-roof" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-wk-roof" placeholder="Custom Name"><input type="number" step="0.01" id="width-cust-wk-roof" placeholder="Width (m)"><input type="number" step="0.01" id="k-cust-wk-roof" placeholder="Thermal Cond. (k)"></div>
+                    <div id="cust-u-roof" class="mat-input-area" style="display: none;"><input type="text" id="name-cust-u-roof" placeholder="Custom Name"><input type="number" step="0.01" id="u-cust-u-roof" placeholder="U-Value (W/m²K)"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page" id="page-2">
+        <div class="section-card">
+            <h3>Doors & Windows</h3>
+            <p class="warning" id="area-warning"></p>
+            <div class="openings-section">
+                <div class="section-header"><h4>Doors</h4><button class="btn-secondary" type="button" onclick="addOpening('doors')">+ Add Door</button></div>
+                <div id="doors-container"></div>
+            </div>
+            <div class="openings-section">
+                <div class="section-header"><h4>Windows</h4><button class="btn-secondary" type="button" onclick="addOpening('windows')">+ Add Window</button></div>
+                <div id="windows-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page" id="page-3">
+        <div class="section-card">
+            <h3>Temperatures (°C) & Ventilation</h3>
+            <div class="form-grid-2">
+                <div class="input-group"><label>Inside Temperature</label> <input type="number" step="0.1" id="temp-inside"></div>
+                <div class="input-group"><label>ACH (Air Changes/Hour)</label> <input type="number" step="0.1" id="ach"></div>
+            </div>
+        </div>
+        <div class="section-card">
+            <h4>Outdoor Temperatures</h4>
+            <div class="form-grid-3" id="outdoor-temps-container"></div>
+        </div>
+    </div>
+
+    <div class="page" id="page-4">
+        <h3>Surface Parameters</h3>
+        <p class="subtitle">Exposure, G, Alpha (e for Roof only)</p>
+        <div id="surface-params-container"></div>
+    </div>
+
+    <div class="footer-nav">
+        <button class="btn-outline" id="btn-prev" onclick="changePage(-1)" style="display: none;">Back</button>
+        <div style="flex-grow: 1;"></div>
+        <button class="btn-primary" id="btn-next" onclick="changePage(1)">Next Step</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

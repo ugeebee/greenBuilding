@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Login - Green Building</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Admin Portal</h2>
+        <form id="admin-login-form">
+            <input type="text" id="admin-username" placeholder="Admin Username" required>
+            <input type="password" id="admin-password" placeholder="Password" required>
+            <input type="text" id="totp-code" placeholder="6-Digit 2FA Code" maxlength="6" required>
+            <button type="submit">Verify & Login</button>
+        </form>
+        <p id="admin-msg" class="message"></p>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+        
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            const code = document.getElementById('totp-code').value;
+            const msgEl = document.getElementById('admin-msg');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, code })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('admin_token', data.token);
+                    window.location.href = 'admin-dashboard.html';
+                } else {
+                    msgEl.style.color = 'red';
+                    msgEl.innerText = data.message || 'Login Failed';
+                }
+            } catch (err) {
+                msgEl.innerText = 'Connection error.';
+            }
+        });
+    </script>
+</body>
+</html>

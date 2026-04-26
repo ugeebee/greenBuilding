@@ -1,0 +1,97 @@
+[
+    {
+        "Surface":"Walls (Internal)",
+        "Conductance ":8.12,
+        "Resistance ":0.123
+    },
+    {
+        "Surface":"Floor, ceiling, heat flow up",
+        "Conductance ":9.48,
+        "Resistance ":0.105
+    },
+    {
+        "Surface":"Floor, ceiling, heat flow down",
+        "Conductance ":6.7,
+        "Resistance ":0.149
+    },
+    {
+        "Surface":"Underside of roof",
+        "Conductance ":9.48,
+        "Resistance ":0.105
+    },
+    {
+        "Surface":"Walls, south facing - sheltered",
+        "Conductance ":7.78,
+        "Resistance ":0.128
+    },
+    {
+        "Surface":"Walls, south facing - normal",
+        "Conductance ":10.0,
+        "Resistance ":0.1
+    },
+    {
+        "Surface":"Walls, south facing - severe",
+        "Conductance ":13.18,
+        "Resistance ":0.076
+    },
+    {
+        "Surface":"Walls, west\/southwest\/southeast facing - sheltered",
+        "Conductance ":10.0,
+        "Resistance ":0.1
+    },
+    {
+        "Surface":"Walls, west\/southwest\/southeast facing - normal",
+        "Conductance ":13.18,
+        "Resistance ":0.076
+    },
+    {
+        "Surface":"Walls, west\/southwest\/southeast facing - severe",
+        "Conductance ":18.9,
+        "Resistance ":0.053
+    },
+    {
+        "Surface":"Walls, northwest facing - sheltered",
+        "Conductance ":13.18,
+        "Resistance ":0.076
+    },
+    {
+        "Surface":"Walls, northwest facing - normal",
+        "Conductance ":18.9,
+        "Resistance ":0.053
+    },
+    {
+        "Surface":"Walls, northwest facing - severe",
+        "Conductance ":31.5,
+        "Resistance ":0.032
+    },
+    {
+        "Surface":"Walls, north\/northeast\/east facing - sheltered",
+        "Conductance ":13.18,
+        "Resistance ":0.076
+    },
+    {
+        "Surface":"Walls, north\/northeast\/east facing - normal",
+        "Conductance ":18.9,
+        "Resistance ":0.053
+    },
+    {
+        "Surface":"Walls, north\/northeast\/east facing - severe",
+        "Conductance ":31.5,
+        "Resistance ":0.032
+    },
+    {
+        "Surface":"Roofs - sheltered",
+        "Conductance ":14.2,
+        "Resistance ":0.07
+    },
+    {
+        "Surface":"Roofs - normal",
+        "Conductance ":22.7,
+        "Resistance ":0.044
+    },
+    {
+        "Surface":"Roofs - severe",
+        "Conductance ":56.7,
+        "Resistance ":0.018
+    }
+]

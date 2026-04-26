@@ -1,0 +1,92 @@
+[
+    {
+        "Exposure Condition":"Exposure south, severe; West, Southwest normal; Northwest, North, Northeast, East sheltered",
+        "Glazing Type":"single glazing",
+        "U-Value ":5.0
+    },
+    {
+        "Exposure Condition":"Exposure south, severe; West, Southwest normal; Northwest, North, Northeast, East sheltered",
+        "Glazing Type":"double glazing, 6 mm space",
+        "U-Value ":3.29
+    },
+    {
+        "Exposure Condition":"Exposure south, severe; West, Southwest normal; Northwest, North, Northeast, East sheltered",
+        "Glazing Type":"double glazing, 20 mm space",
+        "U-Value ":2.67
+    },
+    {
+        "Exposure Condition":"Exposure South, Southeast, Northwest, North, Northeast, East, normal",
+        "Glazing Type":"single glazing",
+        "U-Value ":5.67
+    },
+    {
+        "Exposure Condition":"Exposure South, Southeast, Northwest, North, Northeast, East, normal",
+        "Glazing Type":"double glazing, 6 mm space",
+        "U-Value ":3.29
+    },
+    {
+        "Exposure Condition":"Exposure South, Southeast, Northwest, North, Northeast, East, normal",
+        "Glazing Type":"double glazing, 20 mm space",
+        "U-Value ":2.84
+    },
+    {
+        "Exposure Condition":"Exposure Northwest, severe",
+        "Glazing Type":"single glazing",
+        "U-Value ":6.47
+    },
+    {
+        "Exposure Condition":"Exposure Northwest, severe",
+        "Glazing Type":"double glazing, 6 mm space",
+        "U-Value ":3.58
+    },
+    {
+        "Exposure Condition":"Exposure Northwest, severe",
+        "Glazing Type":"double glazing, 20 mm space",
+        "U-Value ":3.0
+    },
+    {
+        "Exposure Condition":"Exposure North, severe",
+        "Glazing Type":"single glazing",
+        "U-Value ":7.38
+    },
+    {
+        "Exposure Condition":"Exposure North, severe",
+        "Glazing Type":"double glazing, 6 mm space",
+        "U-Value ":3.8
+    },
+    {
+        "Exposure Condition":"Exposure North, severe",
+        "Glazing Type":"double glazing, 20 mm space",
+        "U-Value ":3.18
+    },
+    {
+        "Exposure Condition":"Exposure south, sheltered ",
+        "Glazing Type":"single glazing",
+        "U-Value ":3.97
+    },
+    {
+        "Exposure Condition":"Exposure south, sheltered ",
+        "Glazing Type":" double glazing, 6 mm space",
+        "U-Value ":2.67
+    },
+    {
+        "Exposure Condition":"Exposure south, sheltered ",
+        "Glazing Type":"double glazing, 20 mm space",
+        "U-Value ":2.5
+    },
+    {
+        "Exposure Condition":"Exposure south, normal West, Southwest, Southeast sheltered",
+        "Glazing Type":"single glazing",
+        "U-Value ":3.97
+    },
+    {
+        "Exposure Condition":"Exposure south, normal West, Southwest, Southeast sheltered ",
+        "Glazing Type":"double glazing, 6 mm space",
+        "U-Value ":2.67
+    },
+    {
+        "Exposure Condition":"Exposure south, normal West, Southwest, Southeast sheltered ",
+        "Glazing Type":"double glazing, 20 mm space",
+        "U-Value ":2.5
+    }
+]

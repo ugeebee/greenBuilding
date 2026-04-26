@@ -1,0 +1,237 @@
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+.secondary-btn {
+    background-color: #dc3545;
+}
+
+.secondary-btn:hover {
+    background-color: #c82333;
+}
+
+.hidden {
+    display: none;
+}
+
+.toggle-text {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.toggle-text a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.message {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #333;
+    min-height: 20px;
+}
+/* Toggle Switch Styling */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+  position: absolute; cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc; transition: .4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute; content: "";
+  height: 26px; width: 26px;
+  left: 4px; bottom: 4px;
+  background-color: white; transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider { background-color: #28a745; }
+input:checked + .slider:before { transform: translateX(26px); }
+/* =========================================
+   DASHBOARD SPECIFIC STYLES
+   ========================================= */
+
+/* General Utilities */
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+.dashboard-body { align-items: flex-start; padding: 0; display: block; }
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    padding: 1rem 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border-bottom: 1px solid var(--border);
+}
+.nav-brand { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+.nav-actions { display: flex; align-items: center; gap: 1.5rem; }
+
+/* User Dashboard Layout */
+.dashboard-container {
+    max-width: 1000px;
+    margin: 3rem auto;
+    padding: 0 1.5rem;
+}
+.dashboard-header { margin-bottom: 2.5rem; text-align: center; }
+.dashboard-header h2 { font-size: 2rem; margin: 0 0 0.5rem 0; border: none; }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+.dash-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.dash-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+.card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.dash-card h3 { margin: 0 0 1rem 0; font-size: 1.25rem; border: none; }
+.dash-card p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; flex-grow: 1; }
+.dash-card button { width: 100%; }
+
+/* =========================================
+   ADMIN DASHBOARD LAYOUT
+   ========================================= */
+.admin-body { padding: 0; margin: 0; display: block; overflow: hidden; }
+.admin-layout { display: flex; height: 100vh; width: 100vw; }
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background: #111827; /* Dark theme for admin sidebar */
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar-brand {
+    padding: 1.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    border-bottom: 1px solid #374151;
+    color: #a7f3d0;
+}
+.sidebar-nav { flex-grow: 1; padding: 1.5rem 0; display: flex; flex-direction: column; gap: 0.5rem;}
+.sidebar-nav a {
+    color: #d1d5db;
+    text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+.sidebar-nav a:hover, .sidebar-nav a.active {
+    background: #1f2937;
+    color: white;
+    border-left: 4px solid var(--primary);
+}
+.sidebar-footer { padding: 1.5rem; border-top: 1px solid #374151; }
+
+/* Admin Main Content */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+.topbar {
+    background: var(--surface);
+    height: 70px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    border-bottom: 1px solid var(--border);
+}
+.topbar h2 { margin: 0; font-size: 1.25rem; font-weight: 600; border: none; padding: 0;}
+.admin-profile { display: flex; align-items: center; gap: 1rem; font-weight: 500; }
+.avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex; justify-content: center; align-items: center;
+}
+
+/* Admin Workspace / Empty State */
+.admin-workspace { padding: 2rem; overflow-y: auto; flex-grow: 1; }
+.empty-state {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-muted);
+    margin-top: 10vh;
+}
+.empty-state h3 { color: var(--text-main); margin-top: 1.5rem; margin-bottom: 0.5rem; border: none;}

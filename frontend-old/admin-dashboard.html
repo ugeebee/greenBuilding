@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Portal - Green Building Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">Admin Portal</div>
+            <nav class="sidebar-nav">
+                <a href="#" class="active">Overview</a>
+                <a href="#">User Management</a>
+                <a href="#">System Logs</a>
+                <a href="#">Global Settings</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-outline" style="width: 100%; border-color: #4b5563; color: #d1d5db;" onclick="adminLogout()">Sign Out</button>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <header class="topbar">
+                <h2>Dashboard Overview</h2>
+                <div class="admin-profile">
+                    <div class="avatar">A</div>
+                    <span>Super Admin</span>
+                </div>
+            </header>
+
+            <main class="admin-workspace">
+                <div class="empty-state">
+                    <svg width="48" height="48" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="3" y="23" width="18" height="18" rx="2" ry="2"></rect><rect x="23" y="3" width="18" height="18" rx="2" ry="2"></rect><rect x="23" y="23" width="18" height="18" rx="2" ry="2"></rect></svg>
+                    <h3>Nothing to show right now</h3>
+                    <p>System metrics and active users will appear here once data is available.</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Security Check: Ensure admin token exists
+        if (!localStorage.getItem('admin_token')) {
+            window.location.href = 'admin-login.html';
+        }
+
+        function adminLogout() {
+            localStorage.removeItem('admin_token');
+            window.location.href = 'admin-login.html';
+        }
+    </script>
+</body>
+</html>

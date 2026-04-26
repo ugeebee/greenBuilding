@@ -1,0 +1,230 @@
+[
+    {
+        "Material":"Asbestos cement sheet",
+        "Density  ":1700,
+        "Thermal Conductivity  ":0.36,
+        "Specific Heat Capacity  ":1050
+    },
+    {
+        "Material":"Brickwork (dense red)",
+        "Density  ":1700,
+        "Thermal Conductivity  ":0.84,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Brickwork (light red)",
+        "Density  ":1700,
+        "Thermal Conductivity  ":0.34,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Cast concrete (dense)",
+        "Density  ":2300,
+        "Thermal Conductivity  ":1.63,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Cast concrete (light)",
+        "Density  ":1400,
+        "Thermal Conductivity  ":0.49,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Concrete block (heavy)",
+        "Density  ":1900,
+        "Thermal Conductivity  ":1.4,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Concrete block (medium)",
+        "Density  ":1500,
+        "Thermal Conductivity  ":0.91,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Concrete block (light)",
+        "Density  ":900,
+        "Thermal Conductivity  ":0.16,
+        "Specific Heat Capacity  ":840
+    },
+    {
+        "Material":"Plasterboard",
+        "Density  ":950,
+        "Thermal Conductivity  ":0.19,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Thelumping",
+        "Density  ":1900,
+        "Thermal Conductivity  ":0.84,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Plaster (dense)",
+        "Density  ":1300,
+        "Thermal Conductivity  ":0.5,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Plaster (light)",
+        "Density  ":800,
+        "Thermal Conductivity  ":0.26,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Asphalt concrete slab",
+        "Density  ":2300,
+        "Thermal Conductivity  ":0.5,
+        "Specific Heat Capacity  ":840
+    },
+    {
+        "Material":"Felt\/bitumen layers",
+        "Density  ":1700,
+        "Thermal Conductivity  ":0.5,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Stone chippings",
+        "Density  ":1800,
+        "Thermal Conductivity  ":0.84,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Wood wool slab",
+        "Density  ":500,
+        "Thermal Conductivity  ":0.1,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Carpeting (wood lit. underlay)",
+        "Density  ":1600,
+        "Thermal Conductivity  ":0.1,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Carpeting (rubber underlay)",
+        "Density  ":400,
+        "Thermal Conductivity  ":0.045,
+        "Specific Heat Capacity  ":1300
+    },
+    {
+        "Material":"Cast concrete",
+        "Density  ":2000,
+        "Thermal Conductivity  ":1.13,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Copper",
+        "Density  ":7800,
+        "Thermal Conductivity  ":50.0,
+        "Specific Heat Capacity  ":480
+    },
+    {
+        "Material":"Aluminium",
+        "Density  ":2800,
+        "Thermal Conductivity  ":160.0,
+        "Specific Heat Capacity  ":896
+    },
+    {
+        "Material":"Stone chippings",
+        "Density  ":2700,
+        "Thermal Conductivity  ":2.0,
+        "Specific Heat Capacity  ":753
+    },
+    {
+        "Material":"Marble",
+        "Density  ":2500,
+        "Thermal Conductivity  ":2.1,
+        "Specific Heat Capacity  ":712
+    },
+    {
+        "Material":"Sandstone",
+        "Density  ":2180,
+        "Thermal Conductivity  ":1.5,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Limestone",
+        "Density  ":1840,
+        "Thermal Conductivity  ":0.9,
+        "Specific Heat Capacity  ":2180
+    },
+    {
+        "Material":"Gravel",
+        "Density  ":2650,
+        "Thermal Conductivity  ":2.9,
+        "Specific Heat Capacity  ":840
+    },
+    {
+        "Material":"Granite",
+        "Density  ":2650,
+        "Thermal Conductivity  ":3.5,
+        "Specific Heat Capacity  ":1000
+    },
+    {
+        "Material":"Wood blocks",
+        "Density  ":1000,
+        "Thermal Conductivity  ":0.41,
+        "Specific Heat Capacity  ":1200
+    },
+    {
+        "Material":"Timber flooring",
+        "Density  ":650,
+        "Thermal Conductivity  ":0.14,
+        "Specific Heat Capacity  ":1200
+    },
+    {
+        "Material":"EPS (slab) polystyrene",
+        "Density  ":25,
+        "Thermal Conductivity  ":0.035,
+        "Specific Heat Capacity  ":1400
+    },
+    {
+        "Material":"Glass fibre slab",
+        "Density  ":30,
+        "Thermal Conductivity  ":0.036,
+        "Specific Heat Capacity  ":1400
+    },
+    {
+        "Material":"Glass fibre quilt",
+        "Density  ":50,
+        "Thermal Conductivity  ":0.04,
+        "Specific Heat Capacity  ":1400
+    },
+    {
+        "Material":"Jute (bonded fibre mat)",
+        "Density  ":30,
+        "Thermal Conductivity  ":0.025,
+        "Specific Heat Capacity  ":1700
+    },
+    {
+        "Material":"Polyurethane foam",
+        "Density  ":40,
+        "Thermal Conductivity  ":0.03,
+        "Specific Heat Capacity  ":1060
+    },
+    {
+        "Material":"PVC",
+        "Density  ":40,
+        "Thermal Conductivity  ":0.036,
+        "Specific Heat Capacity  ":670
+    },
+    {
+        "Material":"Wood wool slab (insul.)",
+        "Density  ":100,
+        "Thermal Conductivity  ":0.04,
+        "Specific Heat Capacity  ":1400
+    },
+    {
+        "Material":"Metal tray",
+        "Density  ":200,
+        "Thermal Conductivity  ":0.04,
+        "Specific Heat Capacity  ":1400
+    },
+    {
+        "Material":"Screed",
+        "Density  ":800,
+        "Thermal Conductivity  ":0.04,
+        "Specific Heat Capacity  ":1400
+    }
+]
