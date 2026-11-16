@@ -7,6 +7,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import Calculator from './pages/Calculator/Calculator';
 import FloorPlanGenerator from './pages/FloorPlan/Generator';
 import FloorPlanReader from './pages/FloorPlan/Reader';
+import FloorPlanResults from './pages/FloorPlan/ReaderResults';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
@@ -53,6 +54,11 @@ function App() {
         <Route path="/floorplan/reader" element={
           <ProtectedRoute>
             <FloorPlanReader />
+          </ProtectedRoute>
+        } />
+        <Route path="/floorplan/reader/results" element={
+          <ProtectedRoute>
+            <FloorPlanResults />
           </ProtectedRoute>
         } />
         <Route path="/floorplan" element={<Navigate to="/floorplan/generator" replace />} />

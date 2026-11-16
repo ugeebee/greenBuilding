@@ -637,7 +637,7 @@ export default function FloorPlanGenerator() {
               <span className="text-[10px] text-amber-500 font-medium hidden sm:inline">Validating...</span>
             )}
             {backendStatus === 'success' && (
-              <span className="text-[10px] text-emerald-500 font-medium hidden sm:inline">✓ Synced</span>
+              <span className="text-[10px] text-emerald-500 font-medium hidden sm:inline">Synced</span>
             )}
           </div>
 

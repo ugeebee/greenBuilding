@@ -1793,7 +1793,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
                   fontFamily="system-ui, sans-serif"
                   fontWeight="bold"
                 >
-                  ✢ Drag to Move
+                  Drag to Move
                 </text>
               </g>
             </g>
@@ -2057,7 +2057,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
                     fontFamily="system-ui, sans-serif"
                     fontWeight="bold"
                   >
-                    ✢ {draggedRoom.name} · X: {rx.toFixed(2)}m, Y: {ry.toFixed(2)}m
+                    {draggedRoom.name} · X: {rx.toFixed(2)}m, Y: {ry.toFixed(2)}m
                   </text>
                 </g>
               );
@@ -2099,7 +2099,7 @@ const FloorPlan: React.FC<FloorPlanProps> = ({
                     fontFamily="system-ui, sans-serif"
                     fontWeight="bold"
                   >
-                    ✢ {op.type.toUpperCase()} · {formatDistance(op.position, unit)}
+                    {op.type.toUpperCase()} · {formatDistance(op.position, unit)}
                   </text>
                 </g>
               );
