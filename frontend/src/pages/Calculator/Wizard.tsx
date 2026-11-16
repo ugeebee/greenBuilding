@@ -596,6 +596,21 @@ export default function Wizard() {
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
       <Navbar title="Heat Load Calculator" />
       <div className="container mx-auto p-6 max-w-4xl pt-6 pb-20">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Mode:</span>
+            <span className="px-3 py-1 rounded-full bg-indigo-600 text-white font-bold text-xs">
+              Steady-State
+            </span>
+          </div>
+          <button 
+            type="button"
+            onClick={() => navigate('/calculator/periodic')}
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            Switch to 24h Periodic Heat Flow Calculator →
+          </button>
+        </div>
         {importedSource && (
           <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-sm flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2.5">

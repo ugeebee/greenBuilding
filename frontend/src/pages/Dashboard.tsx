@@ -39,12 +39,17 @@ export default function Dashboard() {
           {/* 1. Heat Load Calculator */}
           <Card className="flex flex-col transition-all duration-200 hover:shadow-xl hover:-translate-y-1 border-indigo-100 dark:border-indigo-900/40 bg-white dark:bg-zinc-900">
             <CardHeader>
-              <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 flex items-center justify-center mb-3 shadow-sm">
-                <Calculator className="w-6 h-6" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 flex items-center justify-center shadow-sm">
+                  <Calculator className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
+                  Steady + Periodic
+                </span>
               </div>
-              <CardTitle className="text-xl">Heat Load Calculator</CardTitle>
+              <CardTitle className="text-xl">Heat Flow Calculator</CardTitle>
               <CardDescription className="text-sm line-clamp-3">
-                Calculate room U-values, envelope solar heat gain, ventilation loads, and HVAC tonnage sizing.
+                Calculate steady-state envelope heat gains, ventilation tonnage, and 24-hour periodic diurnal heat waves with thermal mass dampening.
               </CardDescription>
             </CardHeader>
             <CardContent className="mt-auto pt-2">
