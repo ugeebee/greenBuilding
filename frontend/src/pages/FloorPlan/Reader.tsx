@@ -788,147 +788,111 @@ export default function FloorPlanReader() {
           </div>
         </div>
 
-        {/* Top Configuration & Upload Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* 1. Sample Blueprints Gallery */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between">
-                <span>Sample Architectural Blueprints</span>
-                <span className="text-xs font-normal text-muted-foreground">Select to test immediately</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {samples.map((s) => (
-                  <div
-                    key={s.id}
-                    onClick={() => handleSelectSample(s)}
-                    className={`cursor-pointer rounded-xl border p-2.5 transition-all text-left flex flex-col justify-between ${
-                      selectedSample?.id === s.id
-                        ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/40 ring-1 ring-sky-500 shadow-xs'
-                        : 'border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/50'
-                    }`}
-                  >
-                    <div className="aspect-4/3 rounded-lg bg-slate-100 dark:bg-zinc-800 mb-2 overflow-hidden flex items-center justify-center border">
-                      <img
-                        src={`/samples/${s.filename}`}
-                        alt={s.title}
-                        className="object-cover w-full h-full hover:scale-105 transition-transform duration-200"
-                      />
+        {/* Top Blueprints & Upload Section */}
+        <Card className="mb-8">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center justify-between">
+              <span>Architectural Blueprints & Upload</span>
+              <span className="text-xs font-normal text-muted-foreground">Select a blueprint or upload custom 2D plan to analyze</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {samples.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => handleSelectSample(s)}
+                  className={`cursor-pointer rounded-xl border p-2.5 transition-all text-left flex flex-col justify-between ${
+                    selectedSample?.id === s.id
+                      ? 'border-sky-500 bg-sky-50/60 dark:bg-sky-950/40 ring-1 ring-sky-500 shadow-xs'
+                      : 'border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/50'
+                  }`}
+                >
+                  <div className="aspect-4/3 rounded-lg bg-slate-100 dark:bg-zinc-800 mb-2 overflow-hidden flex items-center justify-center border">
+                    <img
+                      src={`/samples/${s.filename}`}
+                      alt={s.title}
+                      className="object-cover w-full h-full hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-xs leading-tight line-clamp-1">{s.title}</span>
+                      {selectedSample?.id === s.id && (
+                        <Check className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                      )}
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold text-xs leading-tight line-clamp-1">{s.title}</span>
-                        {selectedSample?.id === s.id && (
-                          <Check className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <Badge variant="secondary" className="text-[9px] px-1 py-0">{s.tag}</Badge>
-                        <span>{s.rooms_count} rooms</span>
-                      </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <Badge variant="secondary" className="text-[9px] px-1 py-0">{s.tag}</Badge>
+                      <span>{s.rooms_count} rooms</span>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Or Upload Custom Image */}
-              <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".png,.jpg,.jpeg,.svg"
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-dashed border-slate-300 dark:border-zinc-700"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-3.5 h-3.5 mr-1.5" />
-                    Upload Custom Plan (.png, .jpg, .svg)
-                  </Button>
-                  {uploadedFile && (
-                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {uploadedFile.name}
-                    </span>
-                  )}
                 </div>
+              ))}
+            </div>
 
-                <span className="text-[11px] text-muted-foreground">
-                  Supports blueprints, CAD drawings, and SVG vector plans.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 2. Analysis Settings & Execution */}
-          <Card className="flex flex-col justify-between">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between">
-                <span>Analysis Engine</span>
-                <Badge variant="secondary" className="text-[10px] bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                  Hybrid CV
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/40 text-xs">
-                <div className="font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                  Hybrid Computer Vision & Edge Contours
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Deterministic architectural wall contour extraction, opening detection, and spatial partitioning.
-                </p>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Scale Calibration (px/meter)</Label>
-                  <span className="text-[10px] text-muted-foreground">Auto / calibrated</span>
-                </div>
-                <Input
-                  type="number"
-                  step="0.1"
-                  value={ppm}
-                  onChange={(e) => setPpm(e.target.value)}
-                  className="h-8 text-xs mt-1"
+            {/* Action Bar: Upload & Run Analysis */}
+            <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept=".png,.jpg,.jpeg,.svg"
+                  className="hidden"
                 />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs border-dashed border-slate-300 dark:border-zinc-700"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-3.5 h-3.5 mr-1.5" />
+                  Upload Custom Plan (.png, .jpg, .svg)
+                </Button>
+                {uploadedFile && (
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {uploadedFile.name}
+                  </span>
+                )}
+                {selectedSample && !uploadedFile && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    Selected: <span className="font-semibold text-slate-700 dark:text-zinc-200">{selectedSample.title}</span>
+                  </span>
+                )}
               </div>
 
-              {errorMsg && (
-                <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
-              )}
+              {/* Run Analysis Button */}
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <Button
+                  className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-semibold h-9 px-6 shadow-sm"
+                  onClick={handleRunAnalysis}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing Blueprint...
+                    </>
+                  ) : (
+                    <>
+                      <FileSearch className="w-4 h-4 mr-2" />
+                      Run Floor Plan Analysis
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
 
-              <Button
-                className="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold h-9 shadow-sm"
-                onClick={handleRunAnalysis}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Analyzing Blueprint...
-                  </>
-                ) : (
-                  <>
-                    <FileSearch className="w-4 h-4 mr-2" />
-                    Run Floor Plan Analysis
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            {errorMsg && (
+              <div className="mt-3 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Results & Interactive Editor Section */}
         {result && (
