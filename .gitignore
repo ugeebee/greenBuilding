@@ -14,4 +14,4 @@ dist/
 *_overlay.png
 uploads/
 **/uploads/
-
+venv
