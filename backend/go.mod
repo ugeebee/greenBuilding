@@ -14,4 +14,5 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
+	github.com/mattn/go-sqlite3 v1.14.53 // indirect
 )

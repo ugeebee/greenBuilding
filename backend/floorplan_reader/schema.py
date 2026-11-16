@@ -1,52 +1,110 @@
-"""Pydantic schemas and geometry helpers for structured floor plan analysis."""
+"""Pydantic schemas and geometry helpers for structured floor plan analysis.
+
+Includes lightweight pure-Python fallback when pydantic is not installed.
+"""
 
 from __future__ import annotations
 from typing import List, Optional, Tuple, Dict, Any
-from pydantic import BaseModel, Field, field_validator, model_validator
+
+try:
+    from pydantic import BaseModel as _PydanticBaseModel, Field, field_validator, model_validator
+    HAS_PYDANTIC = True
+except ImportError:
+    HAS_PYDANTIC = False
+
+    def Field(default=None, default_factory=None, **kwargs):
+        if default_factory is not None:
+            return default_factory()
+        return default
+
+    def field_validator(*args, **kwargs):
+        def dec(fn):
+            return fn
+        return dec
+
+    def model_validator(*args, **kwargs):
+        def dec(fn):
+            return fn
+        return dec
+
+    class _PydanticBaseModel:
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+        def model_dump(self, mode="python", exclude_none=False, **kwargs) -> Dict[str, Any]:
+            def _serialize(val):
+                if hasattr(val, "model_dump"):
+                    return val.model_dump(mode=mode, exclude_none=exclude_none, **kwargs)
+                elif isinstance(val, (list, tuple)):
+                    return [_serialize(x) for x in val]
+                elif isinstance(val, dict):
+                    return {k: _serialize(v) for k, v in val.items() if not (exclude_none and v is None)}
+                return val
+
+            res = {}
+            for k, v in self.__dict__.items():
+                if k.startswith("_"):
+                    continue
+                if exclude_none and v is None:
+                    continue
+                res[k] = _serialize(v)
+            return res
+
+        @classmethod
+        def model_validate(cls, data: Any) -> Any:
+            if isinstance(data, cls):
+                return data
+            if isinstance(data, dict):
+                return cls(**data)
+            return data
 
 
-class BoundingBox2D(BaseModel):
-    """Normalized 2D Bounding Box in Qwen-VL grounding format [ymin, xmin, ymax, xmax].
+class BoundingBox2D(_PydanticBaseModel):
+    """Normalized 2D Bounding Box in format [ymin, xmin, ymax, xmax].
     
     Coordinates are normalized to range [0, 1000] where:
     - ymin, ymax: 0 (top) to 1000 (bottom)
     - xmin, xmax: 0 (left) to 1000 (right)
     """
-    ymin: float = Field(..., ge=0, le=1000, description="Top edge coordinate in range 0-1000")
-    xmin: float = Field(..., ge=0, le=1000, description="Left edge coordinate in range 0-1000")
-    ymax: float = Field(..., ge=0, le=1000, description="Bottom edge coordinate in range 0-1000")
-    xmax: float = Field(..., ge=0, le=1000, description="Right edge coordinate in range 0-1000")
+    ymin: float = 0.0
+    xmin: float = 0.0
+    ymax: float = 1000.0
+    xmax: float = 1000.0
 
-    @model_validator(mode="before")
-    @classmethod
-    def _preprocess_input(cls, data: Any) -> Any:
-        """Allow initializing from [ymin, xmin, ymax, xmax] list or dict."""
-        if isinstance(data, (list, tuple)):
-            if len(data) != 4:
-                raise ValueError(f"Expected 4 coordinates [ymin, xmin, ymax, xmax], got {len(data)}")
-            return {
-                "ymin": float(data[0]),
-                "xmin": float(data[1]),
-                "ymax": float(data[2]),
-                "xmax": float(data[3]),
-            }
-        return data
+    def __init__(self, *args, **kwargs):
+        if args and len(args) == 4:
+            ymin, xmin, ymax, xmax = float(args[0]), float(args[1]), float(args[2]), float(args[3])
+        elif "box" in kwargs and isinstance(kwargs["box"], (list, tuple)) and len(kwargs["box"]) == 4:
+            b = kwargs["box"]
+            ymin, xmin, ymax, xmax = float(b[0]), float(b[1]), float(b[2]), float(b[3])
+        else:
+            ymin = float(kwargs.get("ymin", 0.0))
+            xmin = float(kwargs.get("xmin", 0.0))
+            ymax = float(kwargs.get("ymax", 1000.0))
+            xmax = float(kwargs.get("xmax", 1000.0))
+
+        if ymin > ymax:
+            ymin, ymax = ymax, ymin
+        if xmin > xmax:
+            xmin, xmax = xmax, xmin
+
+        super().__init__(ymin=ymin, xmin=xmin, ymax=ymax, xmax=xmax)
+        self.ymin = ymin
+        self.xmin = xmin
+        self.ymax = ymax
+        self.xmax = xmax
 
     @classmethod
     def parse_from_list_or_dict(cls, data: Any) -> BoundingBox2D:
         """Convenience factory method returning a validated BoundingBox2D instance."""
         if isinstance(data, cls):
             return data
-        return cls.model_validate(data)
-
-    @model_validator(mode="after")
-    def validate_bounds_order(self) -> BoundingBox2D:
-        """Ensure ymin <= ymax and xmin <= xmax, automatically reordering if inverted."""
-        if self.ymin > self.ymax:
-            self.ymin, self.ymax = self.ymax, self.ymin
-        if self.xmin > self.xmax:
-            self.xmin, self.xmax = self.xmax, self.xmin
-        return self
+        if isinstance(data, (list, tuple)) and len(data) == 4:
+            return cls(data[0], data[1], data[2], data[3])
+        if isinstance(data, dict):
+            return cls(**data)
+        raise ValueError(f"Cannot parse BoundingBox2D from {data}")
 
     @property
     def norm_width(self) -> float:
@@ -64,7 +122,7 @@ class BoundingBox2D(BaseModel):
         return self.norm_width * self.norm_height
 
     def to_list(self) -> List[int]:
-        """Return integer [ymin, xmin, ymax, xmax] for Qwen grounding representation."""
+        """Return integer [ymin, xmin, ymax, xmax]."""
         return [int(round(self.ymin)), int(round(self.xmin)), int(round(self.ymax)), int(round(self.xmax))]
 
     def to_pixel_xyxy(self, img_width: int, img_height: int) -> Tuple[int, int, int, int]:
@@ -97,73 +155,170 @@ class BoundingBox2D(BaseModel):
         return inter_area / union_area
 
 
-class RoomElement(BaseModel):
+class RoomElement(_PydanticBaseModel):
     """Represents an identified room or functional architectural zone."""
-    id: str = Field(..., description="Unique room identifier (e.g. room_1)")
-    name: str = Field(..., description="Room type: bedroom, living_room, kitchen, bathroom, hallway, etc.")
-    box_2d: BoundingBox2D = Field(..., description="Normalized bounding box [ymin, xmin, ymax, xmax]")
-    
-    # Relative normalized dimension calculations (derived automatically if omitted)
-    norm_length: Optional[float] = Field(None, description="Longer dimension in normalized units [0, 1000]")
-    norm_width: Optional[float] = Field(None, description="Shorter dimension in normalized units [0, 1000]")
-    area_percentage: Optional[float] = Field(None, description="Percentage of total floor plan area (0-100%)")
-    
-    # Text extracted from floor plan blueprints if visible
-    detected_label_text: Optional[str] = Field(None, description="Blueprint text found inside the room (e.g. '12 x 14')")
-    
-    # Calibrated real-world dimensions (if scale ratio or generator metadata is provided)
-    real_length: Optional[float] = Field(None, description="Estimated real-world length")
-    real_width: Optional[float] = Field(None, description="Estimated real-world width")
-    unit: Optional[str] = Field("m", description="Dimension unit ('m' or 'ft')")
+    id: str
+    name: str
+    box_2d: BoundingBox2D
+    norm_length: Optional[float] = None
+    norm_width: Optional[float] = None
+    area_percentage: Optional[float] = None
+    detected_label_text: Optional[str] = None
+    real_length: Optional[float] = None
+    real_width: Optional[float] = None
+    unit: Optional[str] = "m"
 
-    @model_validator(mode="after")
-    def calculate_dimensions(self) -> RoomElement:
-        """Automatically calculate norm_length, norm_width, and area_percentage from box_2d."""
-        w = self.box_2d.norm_width
-        h = self.box_2d.norm_height
-        if self.norm_length is None:
-            self.norm_length = round(max(w, h), 1)
-        if self.norm_width is None:
-            self.norm_width = round(min(w, h), 1)
-        if self.area_percentage is None:
-            # Full layout area is 1000 * 1000 = 1,000,000
-            self.area_percentage = round((self.box_2d.norm_area / 1_000_000.0) * 100.0, 2)
-        return self
+    def __init__(
+        self,
+        id: str = "",
+        name: str = "",
+        box_2d: Any = None,
+        norm_length: Optional[float] = None,
+        norm_width: Optional[float] = None,
+        area_percentage: Optional[float] = None,
+        detected_label_text: Optional[str] = None,
+        real_length: Optional[float] = None,
+        real_width: Optional[float] = None,
+        unit: Optional[str] = "m",
+        **kwargs
+    ):
+        if not isinstance(box_2d, BoundingBox2D):
+            box_2d = BoundingBox2D.parse_from_list_or_dict(box_2d)
+
+        w = box_2d.norm_width
+        h = box_2d.norm_height
+        if norm_length is None:
+            norm_length = round(max(w, h), 1)
+        if norm_width is None:
+            norm_width = round(min(w, h), 1)
+        if area_percentage is None:
+            area_percentage = round((box_2d.norm_area / 1_000_000.0) * 100.0, 2)
+
+        super().__init__(
+            id=id,
+            name=name,
+            box_2d=box_2d,
+            norm_length=norm_length,
+            norm_width=norm_width,
+            area_percentage=area_percentage,
+            detected_label_text=detected_label_text,
+            real_length=real_length,
+            real_width=real_width,
+            unit=unit,
+            **kwargs
+        )
+        self.id = id
+        self.name = name
+        self.box_2d = box_2d
+        self.norm_length = norm_length
+        self.norm_width = norm_width
+        self.area_percentage = area_percentage
+        self.detected_label_text = detected_label_text
+        self.real_length = real_length
+        self.real_width = real_width
+        self.unit = unit
 
 
-class DoorElement(BaseModel):
+class DoorElement(_PydanticBaseModel):
     """Represents an identified door opening or swing symbol."""
-    id: str = Field(..., description="Unique door identifier (e.g. door_1)")
-    box_2d: BoundingBox2D = Field(..., description="Normalized bounding box [ymin, xmin, ymax, xmax]")
-    door_type: str = Field("single_swing", description="Door classification: single_swing, double_swing, sliding, opening")
-    connects: Optional[List[str]] = Field(default_factory=list, description="IDs of rooms connected by this door")
+    id: str
+    box_2d: BoundingBox2D
+    door_type: str = "single_swing"
+    connects: Optional[List[str]] = None
+
+    def __init__(self, id: str = "", box_2d: Any = None, door_type: str = "single_swing", connects: Optional[List[str]] = None, **kwargs):
+        if not isinstance(box_2d, BoundingBox2D):
+            box_2d = BoundingBox2D.parse_from_list_or_dict(box_2d)
+        connects = connects or []
+        super().__init__(id=id, box_2d=box_2d, door_type=door_type, connects=connects, **kwargs)
+        self.id = id
+        self.box_2d = box_2d
+        self.door_type = door_type
+        self.connects = connects
 
 
-class WindowElement(BaseModel):
+class WindowElement(_PydanticBaseModel):
     """Represents an identified window element."""
-    id: str = Field(..., description="Unique window identifier (e.g. window_1)")
-    box_2d: BoundingBox2D = Field(..., description="Normalized bounding box [ymin, xmin, ymax, xmax]")
-    window_type: str = Field("standard", description="Window classification: standard, bay, sliding")
-    wall_side: Optional[str] = Field(None, description="Orientation on plan: north, south, east, west, exterior")
+    id: str
+    box_2d: BoundingBox2D
+    window_type: str = "standard"
+    wall_side: Optional[str] = None
+
+    def __init__(self, id: str = "", box_2d: Any = None, window_type: str = "standard", wall_side: Optional[str] = None, **kwargs):
+        if not isinstance(box_2d, BoundingBox2D):
+            box_2d = BoundingBox2D.parse_from_list_or_dict(box_2d)
+        super().__init__(id=id, box_2d=box_2d, window_type=window_type, wall_side=wall_side, **kwargs)
+        self.id = id
+        self.box_2d = box_2d
+        self.window_type = window_type
+        self.wall_side = wall_side
 
 
-class FloorPlanMetadata(BaseModel):
+class FloorPlanMetadata(_PydanticBaseModel):
     """Metadata regarding the input floor plan drawing."""
-    image_width: int = Field(..., description="Original image width in pixels")
-    image_height: int = Field(..., description="Original image height in pixels")
-    source_format: str = Field("png", description="Original file format: jpg, png, or svg")
-    total_rooms: int = Field(0, description="Total detected rooms")
-    total_doors: int = Field(0, description="Total detected doors")
-    total_windows: int = Field(0, description="Total detected windows")
-    pixels_per_meter: Optional[float] = Field(None, description="Calibration scale ratio if available")
+    image_width: int
+    image_height: int
+    source_format: str = "png"
+    total_rooms: int = 0
+    total_doors: int = 0
+    total_windows: int = 0
+    pixels_per_meter: Optional[float] = None
+
+    def __init__(
+        self,
+        image_width: int = 0,
+        image_height: int = 0,
+        source_format: str = "png",
+        total_rooms: int = 0,
+        total_doors: int = 0,
+        total_windows: int = 0,
+        pixels_per_meter: Optional[float] = None,
+        **kwargs
+    ):
+        super().__init__(
+            image_width=image_width,
+            image_height=image_height,
+            source_format=source_format,
+            total_rooms=total_rooms,
+            total_doors=total_doors,
+            total_windows=total_windows,
+            pixels_per_meter=pixels_per_meter,
+            **kwargs
+        )
+        self.image_width = image_width
+        self.image_height = image_height
+        self.source_format = source_format
+        self.total_rooms = total_rooms
+        self.total_doors = total_doors
+        self.total_windows = total_windows
+        self.pixels_per_meter = pixels_per_meter
 
 
-class FloorPlanAnalysis(BaseModel):
+class FloorPlanAnalysis(_PydanticBaseModel):
     """Top-level structured output of the floor plan reader analysis."""
     metadata: FloorPlanMetadata
-    rooms: List[RoomElement] = Field(default_factory=list)
-    doors: List[DoorElement] = Field(default_factory=list)
-    windows: List[WindowElement] = Field(default_factory=list)
+    rooms: List[RoomElement]
+    doors: List[DoorElement]
+    windows: List[WindowElement]
+
+    def __init__(
+        self,
+        metadata: Any = None,
+        rooms: Optional[List[RoomElement]] = None,
+        doors: Optional[List[DoorElement]] = None,
+        windows: Optional[List[WindowElement]] = None,
+        **kwargs
+    ):
+        if metadata is not None and not isinstance(metadata, FloorPlanMetadata):
+            metadata = FloorPlanMetadata(**metadata)
+        rooms = rooms or []
+        doors = doors or []
+        windows = windows or []
+        super().__init__(metadata=metadata, rooms=rooms, doors=doors, windows=windows, **kwargs)
+        self.metadata = metadata
+        self.rooms = rooms
+        self.doors = doors
+        self.windows = windows
 
     @classmethod
     def from_model_prediction(
@@ -187,7 +342,7 @@ class FloorPlanAnalysis(BaseModel):
                 continue
             name = r.get("name") or r.get("type") or r.get("label", "room")
             label_text = r.get("detected_label_text") or r.get("text")
-            
+
             # Real world scaling if pixels_per_meter is provided
             real_l, real_w = None, None
             if pixels_per_meter and pixels_per_meter > 0:

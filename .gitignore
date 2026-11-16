@@ -1,3 +1,14 @@
 .env
+.env.local
 .vscode
 .github
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+*.pyc
+**/*.pyc
+node_modules/
+dist/
+*.log
+*_overlay.png

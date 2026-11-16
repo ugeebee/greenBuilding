@@ -8,7 +8,11 @@ from floorplan_reader.schema import (
     FloorPlanMetadata,
     FloorPlanAnalysis,
 )
-from floorplan_reader.detection.hybrid_analyzer import HybridFloorPlanAnalyzer
+
+try:
+    from floorplan_reader.detection.hybrid_analyzer import HybridFloorPlanAnalyzer
+except ImportError:
+    HybridFloorPlanAnalyzer = None
 
 __version__ = "0.1.0"
 __all__ = [

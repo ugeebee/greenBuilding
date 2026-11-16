@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"greenbuilding-backend/database"
@@ -34,7 +35,8 @@ func SetupAdminHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = database.DB.Exec("UPDATE users SET totp_secret = ?, role = 'admin' WHERE username = ?", key.Secret(), username)
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Printf("SetupAdmin DB error: %v", err)
+		http.Error(w, "Database error updating admin status", http.StatusInternalServerError)
 		return
 	}
 
@@ -63,7 +65,8 @@ func ToggleCalculatorHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := database.DB.Exec("UPDATE settings SET setting_value = ? WHERE setting_key = 'calculator_enabled'", status)
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Printf("ToggleCalculator DB error: %v", err)
+		http.Error(w, "Database error updating setting", http.StatusInternalServerError)
 		return
 	}
 
@@ -74,21 +77,23 @@ func ToggleCalculatorHandler(w http.ResponseWriter, r *http.Request) {
 func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := database.DB.Query("SELECT username, full_name, email, created_at FROM users WHERE role != 'admin' ORDER BY created_at DESC")
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Printf("GetAllUsers DB error: %v", err)
+		http.Error(w, "Database error querying users", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var users []map[string]interface{}
+	users := []map[string]interface{}{}
 	for rows.Next() {
 		var username, fullName, email, createdAt string
-		rows.Scan(&username, &fullName, &email, &createdAt)
-		users = append(users, map[string]interface{}{
-			"username":   username,
-			"full_name":  fullName,
-			"email":      email,
-			"created_at": createdAt,
-		})
+		if err := rows.Scan(&username, &fullName, &email, &createdAt); err == nil {
+			users = append(users, map[string]interface{}{
+				"username":   username,
+				"full_name":  fullName,
+				"email":      email,
+				"created_at": createdAt,
+			})
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -107,23 +112,25 @@ func GetUserHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		username,
 	)
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		log.Printf("GetUserHistory DB error: %v", err)
+		http.Error(w, "Database error querying user history", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var results []interface{}
+	results := []interface{}{}
 	for rows.Next() {
 		var id int
 		var pStr, date string
-		rows.Scan(&id, &pStr, &date)
-		var p interface{}
-		json.Unmarshal([]byte(pStr), &p)
-		results = append(results, map[string]interface{}{
-			"id":        id,
-			"data":      p,
-			"timestamp": date,
-		})
+		if err := rows.Scan(&id, &pStr, &date); err == nil {
+			var p interface{}
+			json.Unmarshal([]byte(pStr), &p)
+			results = append(results, map[string]interface{}{
+				"id":        id,
+				"data":      p,
+				"timestamp": date,
+			})
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

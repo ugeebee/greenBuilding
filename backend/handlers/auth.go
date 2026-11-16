@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"greenbuilding-backend/database"
@@ -20,8 +21,27 @@ import (
 var jwtKey []byte
 
 func InitConfig() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("Warning: No .env file found. Relying on system environment variables.")
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = os.Getenv("ENV")
+	}
+
+	// 1. Load base .env if present
+	_ = godotenv.Load()
+
+	// If APP_ENV was specified in .env, pick it up
+	if env == "" {
+		env = os.Getenv("APP_ENV")
+	}
+	if env == "" {
+		env = "development"
+		_ = os.Setenv("APP_ENV", "development")
+	}
+
+	// 2. Load environment-specific file if present: .env.development / .env.staging / .env.production
+	envFile := ".env." + strings.ToLower(env)
+	if err := godotenv.Overload(envFile); err == nil {
+		log.Printf("Loaded environment configuration from %s", envFile)
 	}
 
 	secret := os.Getenv("JWT_SECRET")
@@ -51,13 +71,21 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.DB.Exec("INSERT INTO users (username, password_hash, full_name, email) VALUES (?, ?, ?, ?)", creds.Username, hashedPassword, creds.FullName, creds.Email)
+	_, err = database.DB.Exec(
+		"INSERT INTO users (username, password_hash, full_name, email) VALUES (?, ?, ?, ?)",
+		creds.Username, string(hashedPassword), creds.FullName, creds.Email,
+	)
 	if err != nil {
 		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
 			http.Error(w, "Username already exists", http.StatusConflict)
 			return
 		}
-		http.Error(w, "Server error", http.StatusInternalServerError)
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			http.Error(w, "Username already exists", http.StatusConflict)
+			return
+		}
+		log.Printf("Signup DB error: %v", err)
+		http.Error(w, "Database error creating user", http.StatusInternalServerError)
 		return
 	}
 
@@ -84,7 +112,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 			return
 		}
-		http.Error(w, "Server error", http.StatusInternalServerError)
+		log.Printf("Login DB error: %v", err)
+		http.Error(w, "Database error during login", http.StatusInternalServerError)
 		return
 	}
 
@@ -93,7 +122,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(30 * time.Minute)
+	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &jwt.RegisteredClaims{
 		Subject:   creds.Username,
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -111,14 +140,17 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    tokenString,
 		Expires:  expirationTime,
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   false,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, &cookie)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"token":   tokenString,
+		"message": "Login successful",
+	})
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +171,10 @@ func GetProfileHandler(w http.ResponseWriter, r *http.Request) {
 	username, _ := r.Context().Value("username").(string)
 
 	var profile models.ProfileResponse
-	err := database.DB.QueryRow("SELECT username, full_name, email FROM users WHERE username = ?", username).Scan(&profile.Username, &profile.FullName, &profile.Email)
+	err := database.DB.QueryRow(
+		"SELECT username, full_name, email FROM users WHERE username = ?",
+		username,
+	).Scan(&profile.Username, &profile.FullName, &profile.Email)
 	if err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
@@ -170,9 +205,15 @@ func ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newHash, _ := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
-	_, err = database.DB.Exec("UPDATE users SET password_hash = ? WHERE username = ?", newHash, username)
+	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = database.DB.Exec("UPDATE users SET password_hash = ? WHERE username = ?", string(newHash), username)
+	if err != nil {
+		log.Printf("ResetPassword DB error: %v", err)
 		http.Error(w, "Failed to update password", http.StatusInternalServerError)
 		return
 	}
