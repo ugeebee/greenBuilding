@@ -699,7 +699,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(tempDir)
 
 	var targetImagePath string
-	method := "segmentation"
+	method := "hybrid"
 	var ppmVal float64 = 0.0
 
 	// Check if multipart form

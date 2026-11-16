@@ -160,7 +160,7 @@ func TestFloorPlanSamplesHandler(t *testing.T) {
 func TestFloorPlanAnalyzeHandler(t *testing.T) {
 	reqBody := map[string]interface{}{
 		"sample": "sample_1bhk.png",
-		"method": "segmentation",
+		"method": "hybrid",
 		"pixels_per_meter": 59.45,
 	}
 	body, _ := json.Marshal(reqBody)

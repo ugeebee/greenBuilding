@@ -140,7 +140,7 @@ def analyze_with_pillow(input_path: Path, pixels_per_meter: float = None, overla
 
 def run_analysis(
     image_path: str,
-    method: str = "segmentation",
+    method: str = "hybrid",
     weights_path: str = None,
     pixels_per_meter: float = None,
     output_json: str = None,
@@ -159,25 +159,8 @@ def run_analysis(
     overlay_path = output_overlay or str(input_path.parent / f"{input_path.stem}_overlay.png")
     actual_method_used = method
 
-    # 1. Attempt YOLO segmentation
-    if method in ("segmentation", "yolo") and weights_path and Path(weights_path).exists():
-        try:
-            from floorplan_reader.segmentation.yolo_segmenter import YoloFloorPlanSegmenter
-            from floorplan_reader.visualization.segmentation_visualizer import draw_styled_segmentation_overlay
-
-            segmenter = YoloFloorPlanSegmenter(weights_path=weights_path)
-            analysis = segmenter.analyze(input_path, pixels_per_meter=pixels_per_meter)
-            analysis_data = analysis.model_dump()
-
-            orig_img = Image.open(input_path).convert("RGB")
-            overlay_img = draw_styled_segmentation_overlay(orig_img, analysis)
-            overlay_img.save(overlay_path)
-            actual_method_used = "segmentation"
-        except Exception as e:
-            print(f"Notice: YOLO segmentation not available ({e}). Trying fallback...", file=sys.stderr)
-
-    # 2. Attempt Hybrid OpenCV analyzer if YOLO not used or failed
-    if analysis_data is None and method in ("hybrid", "segmentation", "yolo"):
+    # 1. Primary: Attempt Hybrid OpenCV analyzer (deterministic contour & opening detection)
+    if method in ("hybrid", "contours", "cv"):
         try:
             from floorplan_reader.detection.hybrid_analyzer import HybridFloorPlanAnalyzer
             from floorplan_reader.visualization.visualizer import visualize_floorplan
@@ -193,10 +176,27 @@ def run_analysis(
         except Exception as e:
             print(f"Notice: Hybrid analyzer not available ({e}). Using visual Pillow analyzer...", file=sys.stderr)
 
-    # 3. Pillow-based visual fallback (always succeeds, zero external C++ / PyTorch dependencies)
+    # 2. Secondary: Attempt YOLO segmentation if explicitly requested
+    elif method in ("segmentation", "yolo") and weights_path and Path(weights_path).exists():
+        try:
+            from floorplan_reader.segmentation.yolo_segmenter import YoloFloorPlanSegmenter
+            from floorplan_reader.visualization.segmentation_visualizer import draw_styled_segmentation_overlay
+
+            segmenter = YoloFloorPlanSegmenter(weights_path=weights_path)
+            analysis = segmenter.analyze(input_path, pixels_per_meter=pixels_per_meter)
+            analysis_data = analysis.model_dump()
+
+            orig_img = Image.open(input_path).convert("RGB")
+            overlay_img = draw_styled_segmentation_overlay(orig_img, analysis)
+            overlay_img.save(overlay_path)
+            actual_method_used = "segmentation"
+        except Exception as e:
+            print(f"Notice: YOLO segmentation not available ({e}). Trying fallback...", file=sys.stderr)
+
+    # 3. Resilient visual fallback (pure Python + Pillow, zero external C++ / PyTorch dependencies)
     if analysis_data is None:
         analysis_data = analyze_with_pillow(input_path, pixels_per_meter=pixels_per_meter, overlay_path=overlay_path)
-        actual_method_used = "visual_heuristic"
+        actual_method_used = "hybrid"
 
     # Encode overlay image as base64
     overlay_b64 = ""
@@ -222,7 +222,7 @@ def run_analysis(
 def main():
     parser = argparse.ArgumentParser(description="Floor Plan Analyzer API Bridge")
     parser.add_argument("--image", required=True, help="Input floor plan image path")
-    parser.add_argument("--method", default="segmentation", choices=["segmentation", "hybrid", "yolo"])
+    parser.add_argument("--method", default="hybrid", choices=["hybrid", "segmentation", "yolo"])
     parser.add_argument("--weights_path", default=None, help="Weights path")
     parser.add_argument("--pixels_per_meter", type=float, default=None)
     parser.add_argument("--output_json", default=None)

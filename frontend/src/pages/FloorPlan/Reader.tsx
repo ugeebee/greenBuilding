@@ -129,7 +129,6 @@ export default function FloorPlanReader() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Analysis options
-  const [method, setMethod] = useState<'segmentation' | 'hybrid'>('segmentation');
   const [ppm, setPpm] = useState<string>('59.45');
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -219,7 +218,7 @@ export default function FloorPlanReader() {
       if (uploadedFile) {
         const formData = new FormData();
         formData.append('file', uploadedFile);
-        formData.append('method', method);
+        formData.append('method', 'hybrid');
         if (ppmNum > 0) formData.append('pixels_per_meter', ppmNum.toString());
 
         res = await fetch('/api/floorplan/analyze', {
@@ -232,7 +231,7 @@ export default function FloorPlanReader() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sample: selectedSample.filename,
-            method,
+            method: 'hybrid',
             pixels_per_meter: ppmNum > 0 ? ppmNum : undefined,
           }),
         });
@@ -871,36 +870,22 @@ export default function FloorPlanReader() {
           {/* 2. Analysis Settings & Execution */}
           <Card className="flex flex-col justify-between">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Analysis Engine</CardTitle>
+              <CardTitle className="text-base flex items-center justify-between">
+                <span>Analysis Engine</span>
+                <Badge variant="secondary" className="text-[10px] bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                  Hybrid CV
+                </Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label className="text-xs">Detection Method</Label>
-                <div className="grid grid-cols-2 gap-2 mt-1.5">
-                  <button
-                    onClick={() => setMethod('segmentation')}
-                    className={`p-2.5 rounded-lg border text-xs text-left transition-all ${
-                      method === 'segmentation'
-                        ? 'border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 font-semibold text-sky-900 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-zinc-800 text-muted-foreground'
-                    }`}
-                  >
-                    <div className="font-bold">YOLO Segmentation</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">Deep Learning polygon masks</div>
-                  </button>
-
-                  <button
-                    onClick={() => setMethod('hybrid')}
-                    className={`p-2.5 rounded-lg border text-xs text-left transition-all ${
-                      method === 'hybrid'
-                        ? 'border-sky-500 bg-sky-50/70 dark:bg-sky-950/40 font-semibold text-sky-900 dark:text-sky-300'
-                        : 'border-slate-200 dark:border-zinc-800 text-muted-foreground'
-                    }`}
-                  >
-                    <div className="font-bold">Hybrid CV & Contours</div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">Deterministic OpenCV edges</div>
-                  </button>
+              <div className="p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-800/40 text-xs">
+                <div className="font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                  Hybrid Computer Vision & Edge Contours
                 </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Deterministic architectural wall contour extraction, opening detection, and spatial partitioning.
+                </p>
               </div>
 
               <div>
