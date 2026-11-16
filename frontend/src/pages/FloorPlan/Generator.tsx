@@ -30,7 +30,8 @@ import { Badge } from '../../components/ui/badge';
 import { 
   Calculator, 
   ArrowRight, 
-  AlertCircle
+  AlertCircle,
+  Download
 } from 'lucide-react';
 
 export type MultiRoomPreset = {
@@ -567,6 +568,88 @@ export default function FloorPlanGenerator() {
     URL.revokeObjectURL(url);
   };
 
+  // Export Vector SVG Drawing
+  const handleExportSVG = () => {
+    const svgEl = document.getElementById('floorplan-canvas-svg') as SVGSVGElement | null;
+    if (!svgEl) return;
+
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    clone.querySelectorAll('[data-export-ignore="true"]').forEach((el) => el.remove());
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+    const serializer = new XMLSerializer();
+    const svgContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(clone);
+    const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `floorplan_studio_${Date.now()}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export High-Resolution PNG Image
+  const handleExportPNG = () => {
+    const svgEl = document.getElementById('floorplan-canvas-svg') as SVGSVGElement | null;
+    if (!svgEl) return;
+
+    const clone = svgEl.cloneNode(true) as SVGSVGElement;
+    clone.querySelectorAll('[data-export-ignore="true"]').forEach((el) => el.remove());
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+    let exportWidth = 2400;
+    let exportHeight = 1600;
+    const viewBox = clone.getAttribute('viewBox');
+    if (viewBox) {
+      const parts = viewBox.trim().split(/\s+/).map(Number);
+      if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+        const aspect = parts[2] / parts[3];
+        exportWidth = 2400;
+        exportHeight = Math.max(800, Math.round(exportWidth / aspect));
+      }
+    }
+    clone.setAttribute('width', exportWidth.toString());
+    clone.setAttribute('height', exportHeight.toString());
+
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(clone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = exportWidth;
+      canvas.height = exportHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = theme === 'blueprint' ? '#0f172a' : theme === 'dark-studio' ? '#18181b' : '#ffffff';
+        ctx.fillRect(0, 0, exportWidth, exportHeight);
+        ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const pngUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = pngUrl;
+            a.download = `floorplan_studio_${Date.now()}.png`;
+            a.click();
+            URL.revokeObjectURL(pngUrl);
+          }
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      } else {
+        URL.revokeObjectURL(url);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col">
       <Navbar title="Floor Plan Studio" />
@@ -710,16 +793,37 @@ export default function FloorPlanGenerator() {
             </select>
           </div>
 
-          {/* Right Action: Send to Calculator & Export */}
-          <div className="flex items-center gap-2">
+          {/* Right Action: Send to Calculator & Export Options */}
+          <div className="flex items-center gap-1.5 flex-wrap">
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs border-slate-300"
-              onClick={handleExportJSON}
+              className="h-8 text-xs border-slate-300 dark:border-zinc-700"
+              onClick={handleExportPNG}
+              title="Download High-Resolution PNG"
             >
-              <FileCode size={13} className="mr-1.5" />
-              Export JSON
+              <Download className="w-3.5 h-3.5 mr-1" />
+              PNG
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-slate-300 dark:border-zinc-700"
+              onClick={handleExportSVG}
+              title="Download Vector SVG Drawing"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" />
+              SVG
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-slate-300 dark:border-zinc-700"
+              onClick={handleExportJSON}
+              title="Download Floor Plan JSON Schema"
+            >
+              <FileCode size={13} className="mr-1" />
+              JSON
             </Button>
             <Button
               size="sm"
