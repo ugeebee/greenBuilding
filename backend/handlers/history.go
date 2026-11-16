@@ -23,6 +23,7 @@ func SaveHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 30-day retention: save calculation and prune any records older than 30 days
 	_, err = database.DB.Exec(
 		"INSERT INTO calculation_history (username, payload) VALUES (?, ?)",
 		username, payload,
@@ -33,38 +34,39 @@ func SaveHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Keep only latest 10 records per user
-	if database.CurrentDriver == "mysql" {
-		database.DB.Exec(`
-			DELETE FROM calculation_history 
-			WHERE username = ? AND id NOT IN (
-				SELECT id FROM (
-					SELECT id FROM calculation_history 
-					WHERE username = ? 
-					ORDER BY created_at DESC LIMIT 10
-				) AS latest
-			)`, username, username)
-	} else {
-		database.DB.Exec(`
-			DELETE FROM calculation_history 
-			WHERE username = ? AND id NOT IN (
-				SELECT id FROM calculation_history 
-				WHERE username = ? 
-				ORDER BY created_at DESC LIMIT 10
-			)`, username, username)
-	}
+	// Prune records older than 30 days
+	_ = database.PruneHistoryOlderThan30Days()
+
+	// Track user activity
+	TrackActivityForUser(
+		username,
+		r,
+		"CALCULATION_SAVED",
+		"Heat Load Calculation Saved",
+		"Saved heat load calculation results to 30-day database history",
+		string(payload),
+	)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Calculation history saved successfully"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Calculation history saved successfully for 30 days",
+	})
 }
 
 func GetHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	username, _ := r.Context().Value("username").(string)
 
-	rows, err := database.DB.Query(
-		"SELECT payload, created_at FROM calculation_history WHERE username = ? ORDER BY created_at DESC",
-		username,
-	)
+	// Prune any records older than 30 days before query
+	_ = database.PruneHistoryOlderThan30Days()
+
+	var query string
+	if database.CurrentDriver == "mysql" {
+		query = "SELECT payload, created_at FROM calculation_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC"
+	} else {
+		query = "SELECT payload, created_at FROM calculation_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC"
+	}
+
+	rows, err := database.DB.Query(query, username)
 	if err != nil {
 		log.Printf("GetHistory DB error: %v", err)
 		http.Error(w, "Database error retrieving history", http.StatusInternalServerError)

@@ -496,6 +496,11 @@ func FloorPlanValidateHandler(w http.ResponseWriter, r *http.Request) {
 		Room:    req,
 	}
 
+	if user := GetUsernameFromRequest(r); user != "" {
+		desc := fmt.Sprintf("Validated single-room layout '%s' (%.1fm x %.1fm)", req.Name, req.Breadth, req.Length)
+		TrackActivityForUser(user, r, "FLOORPLAN_VALIDATED", "Single Room Layout Validated", desc, "")
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -629,6 +634,11 @@ func FloorPlanValidateMultiRoomHandler(w http.ResponseWriter, r *http.Request) {
 		Status:    "success",
 		Metrics:   metrics,
 		FloorPlan: req,
+	}
+
+	if user := GetUsernameFromRequest(r); user != "" {
+		desc := fmt.Sprintf("Validated multi-room layout '%s' with %d rooms", req.Name, len(req.Rooms))
+		TrackActivityForUser(user, r, "FLOORPLAN_VALIDATED", "Multi-Room Plan Validated", desc, "")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -831,6 +841,34 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	parsedResult["processing_time_ms"] = time.Since(startTime).Milliseconds()
+
+	// Track floor plan analysis activity
+	user := GetUsernameFromRequest(r)
+	if user == "" {
+		user = "anonymous"
+	}
+	var roomCount, doorCount, winCount int
+	if analysis, ok := parsedResult["analysis"].(map[string]interface{}); ok {
+		if rList, ok := analysis["rooms"].([]interface{}); ok {
+			roomCount = len(rList)
+		}
+		if dList, ok := analysis["doors"].([]interface{}); ok {
+			doorCount = len(dList)
+		}
+		if wList, ok := analysis["windows"].([]interface{}); ok {
+			winCount = len(wList)
+		}
+	}
+	desc := fmt.Sprintf("Analyzed blueprint (%s engine): detected %d room(s), %d door(s), %d window(s)", method, roomCount, doorCount, winCount)
+	detailsMap := map[string]interface{}{
+		"method":             method,
+		"rooms_detected":    roomCount,
+		"doors_detected":    doorCount,
+		"windows_detected":  winCount,
+		"processing_time_ms": parsedResult["processing_time_ms"],
+	}
+	detailsStr, _ := json.Marshal(detailsMap)
+	TrackActivityForUser(user, r, "FLOORPLAN_ANALYZED", "Blueprint Analysis Executed", desc, string(detailsStr))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parsedResult)

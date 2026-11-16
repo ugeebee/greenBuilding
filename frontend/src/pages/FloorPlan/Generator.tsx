@@ -386,10 +386,16 @@ export default function FloorPlanGenerator() {
     const runValidation = async () => {
       try {
         setBackendStatus('validating');
+        const authToken = localStorage.getItem('token');
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
         if (studioMode === 'single') {
           const res = await fetch('/api/floorplan/validate', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(singleRoom),
           });
           if (res.ok) {
@@ -400,7 +406,7 @@ export default function FloorPlanGenerator() {
         } else {
           const res = await fetch('/api/floorplan/validate-multi-room', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               name: 'Multi-Room Plan',
               exteriorWallThickness,

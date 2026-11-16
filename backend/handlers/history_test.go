@@ -60,5 +60,72 @@ func TestHistoryWithRealDatabase(t *testing.T) {
 	if len(historyItems) != 1 {
 		t.Fatalf("expected 1 history item in database, got %d", len(historyItems))
 	}
+
+	// 3. Verify more than 10 history records can be saved (no arbitrary 10-item cap)
+	for i := 2; i <= 15; i++ {
+		cData := map[string]interface{}{"room": i, "heat": i * 100}
+		b, _ := json.Marshal(cData)
+		r := httptest.NewRequest("POST", "/api/save", bytes.NewReader(b))
+		r = r.WithContext(ctx)
+		rw := httptest.NewRecorder()
+		SaveHistoryHandler(rw, r)
+		if rw.Code != http.StatusCreated {
+			t.Fatalf("failed to save item %d: %v", i, rw.Body.String())
+		}
+	}
+
+	getReq2 := httptest.NewRequest("GET", "/api/history", nil)
+	getReq2 = getReq2.WithContext(ctx)
+	getW2 := httptest.NewRecorder()
+	GetHistoryHandler(getW2, getReq2)
+	var allItems []map[string]interface{}
+	json.NewDecoder(getW2.Body).Decode(&allItems)
+	if len(allItems) != 15 {
+		t.Fatalf("expected 15 history items preserved (no 10-item cap), got %d", len(allItems))
+	}
+
+	// 4. Test 30-day retention pruning: insert an expired record (35 days old)
+	_, err := database.DB.Exec("INSERT INTO calculation_history (username, payload, created_at) VALUES ('utkarsh', '{\"old\":true}', datetime('now', '-35 days'))")
+	if err != nil {
+		t.Fatalf("failed to insert expired calculation: %v", err)
+	}
+	_, err = database.DB.Exec("INSERT INTO activity_history (username, activity_type, action_name, description, created_at) VALUES ('utkarsh', 'OLD_ACT', 'Old Action', 'Old Desc', datetime('now', '-35 days'))")
+	if err != nil {
+		t.Fatalf("failed to insert expired activity: %v", err)
+	}
+
+	// Run 30-day retention prune
+	if err := database.PruneHistoryOlderThan30Days(); err != nil {
+		t.Fatalf("pruning error: %v", err)
+	}
+
+	// Ensure expired calculation was pruned
+	var expiredCount int
+	database.DB.QueryRow("SELECT COUNT(*) FROM calculation_history WHERE created_at < datetime('now', '-30 days')").Scan(&expiredCount)
+	if expiredCount != 0 {
+		t.Fatalf("expected 0 expired calculations after 30-day prune, got %d", expiredCount)
+	}
+
+	// Ensure expired activity was pruned
+	var expiredActCount int
+	database.DB.QueryRow("SELECT COUNT(*) FROM activity_history WHERE created_at < datetime('now', '-30 days')").Scan(&expiredActCount)
+	if expiredActCount != 0 {
+		t.Fatalf("expected 0 expired activities after 30-day prune, got %d", expiredActCount)
+	}
+
+	// 5. Test user activity retrieval
+	actReq := httptest.NewRequest("GET", "/api/user/activities", nil)
+	actReq = actReq.WithContext(ctx)
+	actW := httptest.NewRecorder()
+	GetUserActivitiesHandler(actW, actReq)
+	if actW.Code != http.StatusOK {
+		t.Fatalf("expected 200 from GetUserActivitiesHandler, got %d", actW.Code)
+	}
+
+	var acts []ActivityRecord
+	json.NewDecoder(actW.Body).Decode(&acts)
+	if len(acts) < 1 {
+		t.Fatalf("expected at least 1 tracked activity, got %d", len(acts))
+	}
 }
 

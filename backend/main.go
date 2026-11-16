@@ -35,9 +35,11 @@ func main() {
 	mux.HandleFunc("/api/logout", handlers.LogoutHandler)
 	mux.HandleFunc("/api/save", handlers.AuthMiddleware(handlers.SaveHistoryHandler))
 	mux.HandleFunc("/api/history", handlers.AuthMiddleware(handlers.GetHistoryHandler))
+	mux.HandleFunc("/api/user/activities", handlers.AuthMiddleware(handlers.GetUserActivitiesHandler))
 	mux.HandleFunc("/api/admin/login", handlers.AdminLoginHandler)
 	mux.HandleFunc("/api/admin/users", handlers.AdminAuthMiddleware(handlers.GetAllUsersHandler))
 	mux.HandleFunc("/api/admin/user-history", handlers.AdminAuthMiddleware(handlers.GetUserHistoryHandler))
+	mux.HandleFunc("/api/admin/activities", handlers.AdminAuthMiddleware(handlers.GetAllActivitiesHandler))
 
 	// Floor Plan Generator & Reader API Endpoints
 	mux.HandleFunc("/api/floorplan/presets", handlers.FloorPlanPresetsHandler)

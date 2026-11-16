@@ -101,6 +101,11 @@ export default function FloorPlanReader() {
     try {
       let res: Response;
       const ppmNum = parseFloat(ppm) || 0;
+      const authToken = localStorage.getItem('token');
+      const authHeaders: Record<string, string> = {};
+      if (authToken) {
+        authHeaders['Authorization'] = `Bearer ${authToken}`;
+      }
 
       if (uploadedFile) {
         const formData = new FormData();
@@ -110,12 +115,16 @@ export default function FloorPlanReader() {
 
         res = await fetch('/api/floorplan/analyze', {
           method: 'POST',
+          headers: authHeaders,
           body: formData,
         });
       } else if (selectedSample) {
         res = await fetch('/api/floorplan/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeaders,
+          },
           body: JSON.stringify({
             sample: selectedSample.filename,
             method: 'hybrid',

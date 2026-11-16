@@ -107,10 +107,17 @@ func GetUserHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := database.DB.Query(
-		"SELECT id, payload, created_at FROM calculation_history WHERE username = ? ORDER BY created_at DESC",
-		username,
-	)
+	// Ensure records older than 30 days are pruned
+	_ = database.PruneHistoryOlderThan30Days()
+
+	var query string
+	if database.CurrentDriver == "mysql" {
+		query = "SELECT id, payload, created_at FROM calculation_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC"
+	} else {
+		query = "SELECT id, payload, created_at FROM calculation_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC"
+	}
+
+	rows, err := database.DB.Query(query, username)
 	if err != nil {
 		log.Printf("GetUserHistory DB error: %v", err)
 		http.Error(w, "Database error querying user history", http.StatusInternalServerError)

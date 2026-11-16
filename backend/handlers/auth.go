@@ -90,6 +90,7 @@ func SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	TrackActivityForUser(creds.Username, r, "SIGNUP", "Account Registered", "New user account registered", "")
 	json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully"})
 }
 
@@ -147,6 +148,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookie)
 
 	w.Header().Set("Content-Type", "application/json")
+	TrackActivityForUser(creds.Username, r, "LOGIN", "User Login", "User authenticated successfully", "")
 	json.NewEncoder(w).Encode(map[string]string{
 		"token":   tokenString,
 		"message": "Login successful",
@@ -154,6 +156,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	if user := GetUsernameFromRequest(r); user != "" {
+		TrackActivityForUser(user, r, "LOGOUT", "User Logout", "User logged out of session", "")
+	}
+
 	cookie := http.Cookie{
 		Name:     "jwt_token",
 		Value:    "",
@@ -219,5 +225,6 @@ func ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	TrackActivityForUser(username, r, "PASSWORD_RESET", "Password Changed", "User updated account password", "")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Password updated successfully"})
 }
