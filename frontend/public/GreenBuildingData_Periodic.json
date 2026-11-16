@@ -1,0 +1,11 @@
+[
+    {
+        "Category": "Walls",
+        "Construction": "Custom Test Super-Insulated Wall",
+        "DecrementFactor": 0.15,
+        "Description": "Unit test sample assembly",
+        "Thickness_mm": 300,
+        "TimeLag_hours": 10.5,
+        "U_Value": 0.28
+    }
+]

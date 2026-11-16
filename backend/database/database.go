@@ -202,6 +202,13 @@ func migrateSchema() {
 				setting_value TEXT NOT NULL,
 				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 			);`,
+			`CREATE TABLE IF NOT EXISTS data_tables (
+				table_key VARCHAR(50) PRIMARY KEY,
+				title VARCHAR(100) NOT NULL,
+				description TEXT,
+				payload MEDIUMTEXT NOT NULL,
+				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+			);`,
 		}
 		for _, stmt := range mysqlStmts {
 			if _, err := DB.Exec(stmt); err != nil {
@@ -260,6 +267,13 @@ func migrateSchema() {
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				setting_key TEXT UNIQUE NOT NULL,
 				setting_value TEXT NOT NULL,
+				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+			`CREATE TABLE IF NOT EXISTS data_tables (
+				table_key TEXT PRIMARY KEY,
+				title TEXT NOT NULL,
+				description TEXT,
+				payload TEXT NOT NULL,
 				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			);`,
 			`CREATE INDEX IF NOT EXISTS idx_calc_user_created ON calculation_history(username, created_at);`,

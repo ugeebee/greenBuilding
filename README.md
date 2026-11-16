@@ -78,6 +78,13 @@ A unified platform combining **2D Architectural CAD Studio**, **AI-Powered Floor
 - `POST /api/save`: Save calculation simulation to user history.
 - `GET /api/history`: Retrieve saved calculation history.
 - `POST /api/login` & `POST /api/signup`: User authentication (JWT).
+- `GET /api/tables` & `GET /api/tables/data?key=<key>`: Public/client endpoints for material properties, surface resistances, assemblies, and periodic thermal data.
+
+### Admin Value Tables & Systems Management
+- `GET /api/admin/tables`: Retrieve all registered data tables with record counts.
+- `GET /api/admin/tables/data?key=<key>`: Fetch table records for editing (Table 1 Materials, Table 2 Surfaces, Table 3 Assemblies, Table 4 Glazing, Table 5 Periodic).
+- `POST /api/admin/tables/update`: Save and synchronize table records to database and JSON assets.
+- `POST /api/admin/tables/reset?key=<key>`: Restore table to default engineering standards.
 
 ---
 

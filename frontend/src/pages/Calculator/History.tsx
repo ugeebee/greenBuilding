@@ -320,6 +320,35 @@ export default function History() {
                       </div>
                     </div>
 
+                    {item.data.periodic_totals && (
+                      <div className="mt-4 p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-black text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            Periodic Diurnal Thermal Inertia Analysis
+                          </span>
+                          <Badge className="text-[10px] bg-emerald-600 text-white font-bold">
+                            -{item.data.periodic_totals.damping_pct}% Mass Damping
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                          <div className="bg-white dark:bg-zinc-900 p-2 rounded-lg border border-indigo-50 dark:border-indigo-900/30">
+                            <span className="text-[9px] text-slate-400 block font-bold uppercase">Daily Mean Qa</span>
+                            <span className="font-black text-slate-800 dark:text-zinc-200">{(item.data.periodic_totals.daily_avg_heat || 0).toFixed(1)}W</span>
+                          </div>
+                          <div className="bg-white dark:bg-zinc-900 p-2 rounded-lg border border-indigo-50 dark:border-indigo-900/30">
+                            <span className="text-[9px] text-slate-400 block font-bold uppercase">Peak Delayed Qc</span>
+                            <span className="font-black text-indigo-600">{(item.data.periodic_totals.peak_heat || 0).toFixed(1)}W</span>
+                            <span className="text-[9px] text-slate-400 block">(@{item.data.periodic_totals.peak_hour}h)</span>
+                          </div>
+                          <div className="bg-white dark:bg-zinc-900 p-2 rounded-lg border border-indigo-50 dark:border-indigo-900/30">
+                            <span className="text-[9px] text-slate-400 block font-bold uppercase">Daily Total Energy</span>
+                            <span className="font-black text-emerald-600">{(item.data.periodic_totals.daily_energy_kwh || 0).toFixed(1)} kWh/d</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {item.image_hash && (
                       <div className="flex items-center gap-3 mt-4 pt-3 border-t border-slate-100">
                         <div className="w-10 h-10 rounded border overflow-hidden bg-slate-100 shrink-0">

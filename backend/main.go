@@ -18,6 +18,7 @@ import (
 func main() {
 	handlers.InitConfig()
 	database.InitDB()
+	handlers.InitDataTables()
 
 	mux := http.NewServeMux()
 
@@ -40,6 +41,14 @@ func main() {
 	mux.HandleFunc("/api/admin/users", handlers.AdminAuthMiddleware(handlers.GetAllUsersHandler))
 	mux.HandleFunc("/api/admin/user-history", handlers.AdminAuthMiddleware(handlers.GetUserHistoryHandler))
 	mux.HandleFunc("/api/admin/activities", handlers.AdminAuthMiddleware(handlers.GetAllActivitiesHandler))
+	mux.HandleFunc("/api/admin/tables", handlers.AdminAuthMiddleware(handlers.GetAllTablesHandler))
+	mux.HandleFunc("/api/admin/tables/data", handlers.AdminAuthMiddleware(handlers.GetTableDataHandler))
+	mux.HandleFunc("/api/admin/tables/update", handlers.AdminAuthMiddleware(handlers.UpdateTableDataHandler))
+	mux.HandleFunc("/api/admin/tables/reset", handlers.AdminAuthMiddleware(handlers.ResetTableDataHandler))
+
+	// System & Calculation Data Endpoints
+	mux.HandleFunc("/api/tables", handlers.GetAllTablesHandler)
+	mux.HandleFunc("/api/tables/data", handlers.GetTableDataHandler)
 
 	// Floor Plan Generator & Reader API Endpoints
 	mux.HandleFunc("/api/floorplan/presets", handlers.FloorPlanPresetsHandler)
