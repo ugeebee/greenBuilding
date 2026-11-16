@@ -20,6 +20,7 @@ func TestAuthWithRealDatabase(t *testing.T) {
 
 	InitConfig()
 	database.InitDB()
+	database.DB.Exec("DELETE FROM users WHERE username = ?", "testuser")
 
 	// 1. Signup a new user
 	signupBody, _ := json.Marshal(models.Credentials{

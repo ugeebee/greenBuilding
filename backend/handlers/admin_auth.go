@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -23,12 +24,14 @@ func AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	admin, exists := Admins[req.Username]
 	if !exists {
+		log.Printf("[ADMIN LOGIN] Username %q not found in Admins map", req.Username)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	err := bcrypt.CompareHashAndPassword([]byte(admin.PasswordHash), []byte(req.Password))
 	if err != nil {
+		log.Printf("[ADMIN LOGIN] Password verification failed for username %q: %v", req.Username, err)
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -41,6 +44,7 @@ func AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !valid {
+		log.Printf("[ADMIN LOGIN] Invalid 2FA code provided for username %q", req.Username)
 		http.Error(w, "Invalid 2FA code", http.StatusUnauthorized)
 		return
 	}

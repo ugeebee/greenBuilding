@@ -130,13 +130,26 @@ export default function AdminLogin() {
             </Button>
 
             {import.meta.env.DEV && (
-              <div className="pt-3 text-center border-t border-zinc-800/80 space-y-1">
-                <span className="text-[11px] text-zinc-400 font-medium block">
-                  Dev Admin: <strong className="text-zinc-200">utkarsh</strong> | Password: <strong className="text-zinc-200">utkarsh</strong>
-                </span>
-                <span className="text-[10px] text-zinc-500 block">
-                  2FA: Authenticator app or dev bypass code <strong className="text-emerald-400 font-mono">000000</strong>
-                </span>
+              <div className="pt-3 text-center border-t border-zinc-800/80 space-y-2">
+                <div className="space-y-1">
+                  <span className="text-[11px] text-zinc-400 font-medium block">
+                    Dev Admin: <strong className="text-zinc-200">utkarsh</strong> | Password: <strong className="text-zinc-200">utkarsh</strong>
+                  </span>
+                  <span className="text-[10px] text-zinc-500 block">
+                    2FA: Authenticator app or dev bypass code <strong className="text-emerald-400 font-mono">000000</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsername('utkarsh');
+                    setPassword('utkarsh');
+                    setCode('000000');
+                  }}
+                  className="px-3 py-1 text-xs rounded bg-zinc-800 hover:bg-zinc-700 text-emerald-400 font-medium transition-colors cursor-pointer"
+                >
+                  ⚡ Auto-fill Dev Credentials
+                </button>
               </div>
             )}
 

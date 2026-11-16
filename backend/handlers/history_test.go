@@ -23,6 +23,7 @@ func TestHistoryWithRealDatabase(t *testing.T) {
 
 	InitConfig()
 	database.InitDB()
+	database.DB.Exec("DELETE FROM calculation_history WHERE username = ?", "utkarsh")
 
 	// 1. Save history for user "utkarsh"
 	calcData := map[string]interface{}{
