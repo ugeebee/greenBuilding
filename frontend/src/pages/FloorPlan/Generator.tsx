@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import FloorPlan, {
@@ -31,7 +31,9 @@ import {
   Calculator, 
   ArrowRight, 
   AlertCircle,
-  Download
+  Download,
+  Upload,
+  X
 } from 'lucide-react';
 
 export type MultiRoomPreset = {
@@ -357,6 +359,10 @@ export default function FloorPlanGenerator() {
   const [backendWarnings, setBackendWarnings] = useState<string[]>([]);
   const [backendStatus, setBackendStatus] = useState<string>('idle');
 
+  // Import JSON Reference and Status
+  const importJsonInputRef = useRef<HTMLInputElement>(null);
+  const [importNotification, setImportNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   // Fetch presets from backend if available
   useEffect(() => {
     const fetchPresets = async () => {
@@ -650,6 +656,191 @@ export default function FloorPlanGenerator() {
     img.src = url;
   };
 
+  // Import JSON Handler
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const rawText = event.target?.result as string;
+        const parsed = JSON.parse(rawText);
+
+        // Reset the input value so the same file can be reloaded if needed
+        if (importJsonInputRef.current) {
+          importJsonInputRef.current.value = '';
+        }
+
+        let root = parsed;
+        if (parsed.data && typeof parsed.data === 'object') root = parsed.data;
+        if (parsed.plan && typeof parsed.plan === 'object') root = parsed.plan;
+
+        // 1. Check for Reader Analysis format: { analysis: { rooms: [...], ... } }
+        if (root.analysis && Array.isArray(root.analysis.rooms)) {
+          const analysisRooms = root.analysis.rooms;
+          const ppm = root.analysis.metadata?.pixels_per_meter || 50;
+
+          const convertedRooms: RoomConfig[] = analysisRooms.map((r: any, idx: number) => {
+            const id = String(r.id || `reader-room-${idx + 1}`);
+            const breadth = Number(r.real_width || (r.box_2d?.width ? r.box_2d.width / ppm : 4.0)) || 4.0;
+            const length = Number(r.real_length || (r.box_2d?.height ? r.box_2d.height / ppm : 3.5)) || 3.5;
+            const x = Number(r.box_2d?.x ? r.box_2d.x / ppm : (idx % 3) * 5.0) || 0;
+            const y = Number(r.box_2d?.y ? r.box_2d.y / ppm : Math.floor(idx / 3) * 5.0) || 0;
+
+            return {
+              id,
+              name: String(r.name || `Room ${idx + 1}`),
+              type: (r.type || 'bedroom') as RoomConfig['type'],
+              x: Math.round(x * 100) / 100,
+              y: Math.round(y * 100) / 100,
+              breadth: Math.max(0.5, Math.round(breadth * 100) / 100),
+              length: Math.max(0.5, Math.round(length * 100) / 100),
+              openings: [],
+            };
+          });
+
+          if (convertedRooms.length > 0) {
+            setStudioMode('multi');
+            setMultiRooms(convertedRooms);
+            setSelectedRoomId(convertedRooms[0].id || null);
+            setImportNotification({
+              type: 'success',
+              message: `Imported blueprint analysis with ${convertedRooms.length} room(s).`,
+            });
+            setTimeout(() => setImportNotification(null), 5000);
+            return;
+          }
+        }
+
+        // 2. Check for multi-room plan: root has rooms array or root itself is an array
+        const candidateRooms = Array.isArray(root.rooms) ? root.rooms : Array.isArray(root) ? root : null;
+
+        if (candidateRooms && candidateRooms.length > 0) {
+          const validRooms: RoomConfig[] = candidateRooms.map((r: any, idx: number) => {
+            const id = String(r.id || `room-${Date.now().toString(36)}-${idx}`);
+            const name = String(r.name || `Room ${idx + 1}`);
+            const breadth = Number(r.breadth || r.width || 4.0) || 4.0;
+            const length = Number(r.length || r.height || 3.5) || 3.5;
+            const x = Number(r.x ?? 0) || 0;
+            const y = Number(r.y ?? 0) || 0;
+            const type = (r.type || 'bedroom') as RoomConfig['type'];
+
+            const openings: Opening[] = Array.isArray(r.openings)
+              ? r.openings.map((op: any, opIdx: number) => {
+                  const wallSide = (['N', 'S', 'E', 'W'].includes(op.wall) ? op.wall : 'N') as WallSide;
+                  return {
+                    id: String(op.id || `op-${id}-${opIdx + 1}`),
+                    type: (op.type === 'window' ? 'window' : 'door') as 'door' | 'window',
+                    wall: wallSide,
+                    position: Number(op.position) || 0.5,
+                    width: Number(op.width) || 0.9,
+                    flipHinge: Boolean(op.flipHinge),
+                    flipSwing: Boolean(op.flipSwing),
+                  };
+                })
+              : [];
+
+            return {
+              id,
+              name,
+              type,
+              x: Math.round(x * 100) / 100,
+              y: Math.round(y * 100) / 100,
+              breadth: Math.max(0.5, Math.round(breadth * 100) / 100),
+              length: Math.max(0.5, Math.round(length * 100) / 100),
+              openings,
+              ...(typeof r.wallThickness === 'number' ? { wallThickness: r.wallThickness } : {}),
+            };
+          });
+
+          if (typeof root.exteriorWallThickness === 'number' && root.exteriorWallThickness > 0) {
+            setExteriorWallThickness(root.exteriorWallThickness);
+          }
+          if (typeof root.interiorWallThickness === 'number' && root.interiorWallThickness > 0) {
+            setInteriorWallThickness(root.interiorWallThickness);
+          }
+
+          setStudioMode('multi');
+          setMultiRooms(validRooms);
+          setSelectedRoomId(validRooms[0]?.id || null);
+          setImportNotification({
+            type: 'success',
+            message: `Imported floor plan with ${validRooms.length} room(s).`,
+          });
+          setTimeout(() => setImportNotification(null), 5000);
+          return;
+        }
+
+        // 3. Check for single room object
+        if (typeof root === 'object' && (root.breadth || root.width || root.length || root.height)) {
+          const breadth = Number(root.breadth || root.width || 4.0) || 4.0;
+          const length = Number(root.length || root.height || 3.5) || 3.5;
+          const openings: Opening[] = Array.isArray(root.openings)
+            ? root.openings.map((op: any, opIdx: number) => {
+                const wallSide = (['N', 'S', 'E', 'W'].includes(op.wall) ? op.wall : 'N') as WallSide;
+                return {
+                  id: String(op.id || `op-single-${opIdx + 1}`),
+                  type: (op.type === 'window' ? 'window' : 'door') as 'door' | 'window',
+                  wall: wallSide,
+                  position: Number(op.position) || 0.5,
+                  width: Number(op.width) || 0.9,
+                  flipHinge: Boolean(op.flipHinge),
+                  flipSwing: Boolean(op.flipSwing),
+                };
+              })
+            : [];
+
+          const validSingleRoom: RoomConfig = {
+            id: String(root.id || 'single-room-custom'),
+            name: String(root.name || 'Imported Room'),
+            type: (root.type || 'living') as RoomConfig['type'],
+            breadth: Math.max(0.5, Math.round(breadth * 100) / 100),
+            length: Math.max(0.5, Math.round(length * 100) / 100),
+            openings,
+            ...(typeof root.wallThickness === 'number' ? { wallThickness: root.wallThickness } : {}),
+          };
+
+          if (typeof root.wallThickness === 'number' && root.wallThickness > 0) {
+            setExteriorWallThickness(root.wallThickness);
+          }
+
+          setStudioMode('single');
+          setSingleRoom(validSingleRoom);
+          setImportNotification({
+            type: 'success',
+            message: `Imported room "${validSingleRoom.name}" (${validSingleRoom.breadth}m × ${validSingleRoom.length}m).`,
+          });
+          setTimeout(() => setImportNotification(null), 5000);
+          return;
+        }
+
+        throw new Error('Unrecognized floor plan JSON schema. Expected room dimensions or a rooms array.');
+      } catch (err: any) {
+        console.error('Failed to import floor plan JSON:', err);
+        if (importJsonInputRef.current) {
+          importJsonInputRef.current.value = '';
+        }
+        setImportNotification({
+          type: 'error',
+          message: err?.message || 'Failed to parse JSON file. Please check file format.',
+        });
+        setTimeout(() => setImportNotification(null), 5000);
+      }
+    };
+    reader.onerror = () => {
+      if (importJsonInputRef.current) {
+        importJsonInputRef.current.value = '';
+      }
+      setImportNotification({
+        type: 'error',
+        message: 'Could not read the selected file.',
+      });
+      setTimeout(() => setImportNotification(null), 5000);
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col">
       <Navbar title="Floor Plan Studio" />
@@ -795,6 +986,24 @@ export default function FloorPlanGenerator() {
 
           {/* Right Action: Send to Calculator & Export Options */}
           <div className="flex items-center gap-1.5 flex-wrap">
+            <input
+              type="file"
+              ref={importJsonInputRef}
+              onChange={handleImportJSON}
+              accept=".json,application/json"
+              className="hidden"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs border-slate-300 dark:border-zinc-700"
+              onClick={() => importJsonInputRef.current?.click()}
+              title="Import Floor Plan from JSON File"
+            >
+              <Upload className="w-3.5 h-3.5 mr-1" />
+              Import JSON
+            </Button>
+            <div className="h-4 w-px bg-slate-300 dark:bg-zinc-700 mx-0.5" />
             <Button
               variant="outline"
               size="sm"
@@ -836,6 +1045,33 @@ export default function FloorPlanGenerator() {
             </Button>
           </div>
         </div>
+
+        {/* Import Notification Banner */}
+        {importNotification && (
+          <div
+            className={`px-4 py-2 text-xs flex items-center justify-between border-b transition-all ${
+              importNotification.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800'
+                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {importNotification.type === 'success' ? (
+                <CheckCircle2 size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+              )}
+              <span>{importNotification.message}</span>
+            </div>
+            <button
+              onClick={() => setImportNotification(null)}
+              className="text-xs hover:opacity-70 p-0.5 ml-3 cursor-pointer"
+              title="Dismiss"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Studio Body: Canvas + Sidebar */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
