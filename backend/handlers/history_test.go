@@ -61,3 +61,4 @@ func TestHistoryWithRealDatabase(t *testing.T) {
 		t.Fatalf("expected 1 history item in database, got %d", len(historyItems))
 	}
 }
+

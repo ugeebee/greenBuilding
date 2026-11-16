@@ -68,3 +68,4 @@ func TestAuthWithRealDatabase(t *testing.T) {
 		t.Fatalf("expected status 401 on bad password, got %d", badLoginW.Code)
 	}
 }
+
