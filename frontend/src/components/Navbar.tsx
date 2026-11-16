@@ -7,7 +7,8 @@ import {
   FileSearch, 
   History, 
   LogOut, 
-  LayoutDashboard
+  LayoutDashboard,
+  ShieldCheck
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -85,6 +86,14 @@ export default function Navbar({ title }: NavbarProps) {
               {title}
             </span>
           )}
+
+          <Link
+            to="/admin"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-emerald-600 dark:hover:text-emerald-400 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500 transition-colors"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Admin Portal
+          </Link>
 
           <Button variant="outline" size="sm" onClick={handleLogout} className="border-slate-200 dark:border-zinc-800">
             <LogOut className="w-4 h-4 mr-1.5" />
