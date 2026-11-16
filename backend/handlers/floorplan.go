@@ -498,7 +498,8 @@ func FloorPlanValidateHandler(w http.ResponseWriter, r *http.Request) {
 
 	if user := GetUsernameFromRequest(r); user != "" {
 		desc := fmt.Sprintf("Validated single-room layout '%s' (%.1fm x %.1fm)", req.Name, req.Breadth, req.Length)
-		TrackActivityForUser(user, r, "FLOORPLAN_VALIDATED", "Single Room Layout Validated", desc, "")
+		detailsBytes, _ := json.Marshal(resp)
+		TrackActivityForUser(user, r, "FLOORPLAN_VALIDATED", "Single Room Layout Validated", desc, string(detailsBytes))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -638,7 +639,8 @@ func FloorPlanValidateMultiRoomHandler(w http.ResponseWriter, r *http.Request) {
 
 	if user := GetUsernameFromRequest(r); user != "" {
 		desc := fmt.Sprintf("Validated multi-room layout '%s' with %d rooms", req.Name, len(req.Rooms))
-		TrackActivityForUser(user, r, "FLOORPLAN_VALIDATED", "Multi-Room Plan Validated", desc, "")
+		detailsBytes, _ := json.Marshal(resp)
+		TrackActivityForUser(user, r, "FLOORPLAN_VALIDATED", "Multi-Room Plan Validated", desc, string(detailsBytes))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -896,16 +898,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	desc := fmt.Sprintf("Analyzed blueprint '%s' (%s engine): detected %d room(s), %d door(s), %d window(s)", originalFilename, method, roomCount, doorCount, winCount)
-	detailsMap := map[string]interface{}{
-		"method":             method,
-		"image_name":         originalFilename,
-		"image_hash":         imageHash,
-		"rooms_detected":    roomCount,
-		"doors_detected":    doorCount,
-		"windows_detected":  winCount,
-		"processing_time_ms": parsedResult["processing_time_ms"],
-	}
-	detailsStr, _ := json.Marshal(detailsMap)
+	detailsStr, _ := json.Marshal(parsedResult)
 	TrackActivityWithImage(user, r, "FLOORPLAN_ANALYZED", "Blueprint Analysis Executed", desc, string(detailsStr), imageHash, originalFilename)
 
 	w.Header().Set("Content-Type", "application/json")

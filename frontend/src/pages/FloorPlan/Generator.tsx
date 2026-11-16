@@ -381,6 +381,34 @@ export default function FloorPlanGenerator() {
     fetchPresets();
   }, []);
 
+  // Restore saved layout if navigated from History
+  useEffect(() => {
+    try {
+      const restoreMulti = sessionStorage.getItem('gb_studio_restore_multi');
+      if (restoreMulti) {
+        sessionStorage.removeItem('gb_studio_restore_multi');
+        const plan = JSON.parse(restoreMulti);
+        if (plan.Rooms && Array.isArray(plan.Rooms)) {
+          setStudioMode('multi');
+          setMultiRooms(plan.Rooms);
+          if (plan.ExteriorWallThickness) setExteriorWallThickness(plan.ExteriorWallThickness);
+          if (plan.InteriorWallThickness) setInteriorWallThickness(plan.InteriorWallThickness);
+          if (plan.Rooms.length > 0) setSelectedRoomId(plan.Rooms[0].id || null);
+        }
+      } else {
+        const restoreSingle = sessionStorage.getItem('gb_studio_restore_single');
+        if (restoreSingle) {
+          sessionStorage.removeItem('gb_studio_restore_single');
+          const room = JSON.parse(restoreSingle);
+          setStudioMode('single');
+          setSingleRoom(room);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to restore studio state", err);
+    }
+  }, []);
+
   // Validation hook
   useEffect(() => {
     const runValidation = async () => {

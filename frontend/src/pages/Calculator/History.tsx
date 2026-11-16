@@ -80,6 +80,52 @@ export default function History() {
     }
   };
 
+  const handleReopenAnalysis = (act: any) => {
+    try {
+      let parsed = act.details;
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
+      }
+      if (parsed && (parsed.analysis || parsed.rooms)) {
+        const previewUrl = act.image_url || parsed.image_url || (act.image_hash ? `/api/uploads/blueprints/${act.image_hash}.png` : '');
+        const ppm = parsed.analysis?.metadata?.pixels_per_meter?.toString() || '59.45';
+        sessionStorage.setItem('gb_floorplan_analysis', JSON.stringify({
+          result: parsed,
+          previewUrl,
+          ppm
+        }));
+        navigate('/floorplan/reader/results', {
+          state: {
+            result: parsed,
+            previewUrl,
+            ppm
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Failed to reopen floor plan analysis", err);
+    }
+  };
+
+  const handleReopenStudio = (act: any) => {
+    try {
+      let parsed = act.details;
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
+      }
+      if (parsed) {
+        if (parsed.FloorPlan) {
+          sessionStorage.setItem('gb_studio_restore_multi', JSON.stringify(parsed.FloorPlan));
+        } else if (parsed.Room) {
+          sessionStorage.setItem('gb_studio_restore_single', JSON.stringify(parsed.Room));
+        }
+        navigate('/floorplan/generator');
+      }
+    } catch (err) {
+      console.error("Failed to reopen studio design", err);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -167,14 +213,34 @@ export default function History() {
                           <span className="font-semibold text-slate-700 dark:text-zinc-300 block">{act.image_name || "Blueprint Plan"}</span>
                           <span className="font-mono text-[9px] text-slate-400">SHA-256: {act.image_hash.slice(0, 16)}...</span>
                         </div>
-                        <a
-                          href={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[11px] text-indigo-600 hover:underline ml-auto font-medium"
+                        <div className="flex items-center gap-2 ml-auto">
+                          <a
+                            href={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] text-indigo-600 hover:underline font-medium"
+                          >
+                            View Image
+                          </a>
+                          {act.activity_type === 'FLOORPLAN_ANALYZED' && act.details && (
+                            <button
+                              onClick={() => handleReopenAnalysis(act)}
+                              className="text-[11px] bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded border border-sky-200 dark:border-sky-800 hover:bg-sky-100 font-semibold transition-colors cursor-pointer"
+                            >
+                              Open in Reader
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {act.activity_type === 'FLOORPLAN_VALIDATED' && act.details && (
+                      <div className="pt-1.5 flex items-center">
+                        <button
+                          onClick={() => handleReopenStudio(act)}
+                          className="text-[11px] bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 font-semibold transition-colors cursor-pointer"
                         >
-                          View Image
-                        </a>
+                          Open in Studio
+                        </button>
                       </div>
                     )}
                   </div>
