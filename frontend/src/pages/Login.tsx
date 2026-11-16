@@ -68,6 +68,7 @@ export default function Login() {
 
       if (isLoginMode) {
         localStorage.setItem('token', data.token || data);
+        localStorage.setItem('username', username);
         navigate('/dashboard');
       } else {
         setMessage({

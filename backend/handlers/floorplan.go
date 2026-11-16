@@ -710,6 +710,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 
 	var targetImagePath string
 	var originalFilename = "blueprint.png"
+	var jsonUsername string
 	method := "hybrid"
 	var ppmVal float64 = 0.0
 
@@ -726,6 +727,9 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if p := r.FormValue("pixels_per_meter"); p != "" {
 			ppmVal, _ = strconv.ParseFloat(p, 64)
+		}
+		if u := r.FormValue("username"); u != "" {
+			jsonUsername = u
 		}
 
 		file, header, err := r.FormFile("file")
@@ -755,6 +759,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 			Method         string  `json:"method"`
 			PixelsPerMeter float64 `json:"pixels_per_meter"`
 			ImageBase64    string  `json:"image_base64"`
+			Username       string  `json:"username"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err == nil {
 			if body.Method != "" {
@@ -762,6 +767,9 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			if body.PixelsPerMeter > 0 {
 				ppmVal = body.PixelsPerMeter
+			}
+			if body.Username != "" {
+				jsonUsername = body.Username
 			}
 			if body.SampleName != "" {
 				originalFilename = body.SampleName
@@ -848,6 +856,9 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Track floor plan analysis activity & persist image with SHA-256 hash
 	user := GetUsernameFromRequest(r)
+	if user == "" && jsonUsername != "" {
+		user = jsonUsername
+	}
 	if user == "" {
 		user = "anonymous"
 	}

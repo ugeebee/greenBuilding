@@ -111,39 +111,66 @@ func ExtractClientIP(r *http.Request) string {
 	return ip
 }
 
-// GetUsernameFromRequest retrieves the username from the request context or JWT token
-func GetUsernameFromRequest(r *http.Request) string {
-	if u, ok := r.Context().Value("username").(string); ok && u != "" {
-		return u
-	}
-
-	var tokenString string
-	if cookie, err := r.Cookie("jwt_token"); err == nil && cookie.Value != "" {
-		tokenString = cookie.Value
-	} else {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
-		}
-	}
-
+// parseUserFromToken extracts the username/subject from a signed JWT string
+func parseUserFromToken(tokenString string) string {
 	if tokenString == "" {
 		return ""
 	}
-
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, http.ErrNotSupported
 		}
 		return jwtKey, nil
 	})
-
 	if err == nil && token.Valid {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			if sub, ok := claims["sub"].(string); ok {
+			if sub, ok := claims["sub"].(string); ok && sub != "" {
 				return sub
 			}
+			if u, ok := claims["username"].(string); ok && u != "" {
+				return u
+			}
 		}
+	}
+	return ""
+}
+
+// GetUsernameFromRequest retrieves the username from the request context, Authorization header, or JWT cookie
+func GetUsernameFromRequest(r *http.Request) string {
+	// 1. Context (set by AuthMiddleware)
+	if u, ok := r.Context().Value("username").(string); ok && u != "" {
+		return u
+	}
+
+	// 2. Authorization Header (Bearer token - primary for SPAs)
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		tokenString := authHeader
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		}
+		if u := parseUserFromToken(tokenString); u != "" {
+			return u
+		}
+	}
+
+	// 3. User JWT Cookie
+	if cookie, err := r.Cookie("jwt_token"); err == nil && cookie.Value != "" {
+		if u := parseUserFromToken(cookie.Value); u != "" {
+			return u
+		}
+	}
+
+	// 4. Admin JWT Cookie
+	if cookie, err := r.Cookie("admin_token"); err == nil && cookie.Value != "" {
+		if u := parseUserFromToken(cookie.Value); u != "" {
+			return u
+		}
+	}
+
+	// 5. Query param or Form value fallback
+	if u := r.FormValue("username"); u != "" {
+		return u
 	}
 
 	return ""
@@ -165,20 +192,18 @@ func TrackActivityForUser(username string, r *http.Request, activityType, action
 
 // TrackActivityWithImage records an activity with associated image hash and original image name
 func TrackActivityWithImage(username string, r *http.Request, activityType, actionName, description, details, imageHash, imageName string) {
-	if database.DB == nil {
+	if database.DB == nil || username == "" {
 		return
 	}
 	ip := ExtractClientIP(r)
 
-	go func() {
-		_, err := database.DB.Exec(
-			"INSERT INTO activity_history (username, activity_type, action_name, description, details, ip_address, image_hash, image_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-			username, activityType, actionName, description, details, ip, imageHash, imageName,
-		)
-		if err != nil {
-			log.Printf("⚠️ TrackActivity DB error: %v", err)
-		}
-	}()
+	_, err := database.DB.Exec(
+		"INSERT INTO activity_history (username, activity_type, action_name, description, details, ip_address, image_hash, image_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		username, activityType, actionName, description, details, ip, imageHash, imageName,
+	)
+	if err != nil {
+		log.Printf("TrackActivity DB error: %v", err)
+	}
 }
 
 // GetUserActivitiesHandler returns the logged-in user's activities from the past 30 days

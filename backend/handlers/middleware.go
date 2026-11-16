@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strings"
 
@@ -13,21 +12,27 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		isAPI := strings.HasPrefix(r.URL.Path, "/api/")
 
-		var tokenString string
-		var source string
-		cookie, err := r.Cookie("jwt_token")
-		if err == nil {
-			tokenString = cookie.Value
-			source = "Cookie"
-		} else {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
-				source = "Header"
+		var candidateTokens []string
+
+		// 1. Authorization Header takes priority
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				candidateTokens = append(candidateTokens, strings.TrimPrefix(authHeader, "Bearer "))
+			} else {
+				candidateTokens = append(candidateTokens, authHeader)
 			}
 		}
 
-		if tokenString == "" {
+		// 2. Cookie next
+		if cookie, err := r.Cookie("jwt_token"); err == nil && cookie.Value != "" {
+			candidateTokens = append(candidateTokens, cookie.Value)
+		}
+		if cookie, err := r.Cookie("admin_token"); err == nil && cookie.Value != "" {
+			candidateTokens = append(candidateTokens, cookie.Value)
+		}
+
+		if len(candidateTokens) == 0 {
 			if isAPI {
 				http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
 			} else {
@@ -36,17 +41,23 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, http.ErrNotSupported
+		var validClaims jwt.MapClaims
+		for _, tokenStr := range candidateTokens {
+			token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, http.ErrNotSupported
+				}
+				return jwtKey, nil
+			})
+			if err == nil && token.Valid {
+				if claims, ok := token.Claims.(jwt.MapClaims); ok {
+					validClaims = claims
+					break
+				}
 			}
-			return jwtKey, nil
-		})
+		}
 
-		if err != nil || !token.Valid {
-			if err != nil {
-				log.Printf("AUTH ERROR [%s]: %v", source, err)
-			}
+		if validClaims == nil {
 			clearCookie := http.Cookie{
 				Name:     "jwt_token",
 				Value:    "",
@@ -64,16 +75,12 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			ctx := context.WithValue(r.Context(), "username", claims["sub"])
-			next.ServeHTTP(w, r.WithContext(ctx))
-		} else {
-			if isAPI {
-				http.Error(w, `{"error": "Invalid token claims"}`, http.StatusUnauthorized)
-			} else {
-				http.Redirect(w, r, "/index.html", http.StatusSeeOther)
-			}
+		username := validClaims["sub"]
+		if username == nil || username == "" {
+			username = validClaims["username"]
 		}
+		ctx := context.WithValue(r.Context(), "username", username)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 

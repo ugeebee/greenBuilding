@@ -214,67 +214,63 @@ func migrateSchema() {
 		_, _ = DB.Exec("ALTER TABLE activity_history ADD COLUMN image_hash VARCHAR(64);")
 		_, _ = DB.Exec("ALTER TABLE activity_history ADD COLUMN image_name VARCHAR(255);")
 	} else {
-		sqliteSchema := `
-		CREATE TABLE IF NOT EXISTS users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT UNIQUE NOT NULL,
-			password_hash TEXT NOT NULL,
-			full_name TEXT,
-			email TEXT,
-			role TEXT DEFAULT 'user',
-			totp_secret TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE TABLE IF NOT EXISTS calculation_history (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT NOT NULL,
-			payload TEXT NOT NULL,
-			image_hash TEXT,
-			image_name TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE TABLE IF NOT EXISTS activity_history (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT NOT NULL,
-			activity_type TEXT NOT NULL,
-			action_name TEXT NOT NULL,
-			description TEXT,
-			details TEXT,
-			ip_address TEXT,
-			image_hash TEXT,
-			image_name TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE TABLE IF NOT EXISTS uploaded_images (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			username TEXT NOT NULL,
-			image_hash TEXT NOT NULL,
-			image_name TEXT NOT NULL,
-			file_path TEXT NOT NULL,
-			overlay_path TEXT,
-			file_size INTEGER DEFAULT 0,
-			mime_type TEXT,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE TABLE IF NOT EXISTS settings (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			setting_key TEXT UNIQUE NOT NULL,
-			setting_value TEXT NOT NULL,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);
-
-		CREATE INDEX IF NOT EXISTS idx_calc_user_created ON calculation_history(username, created_at);
-		CREATE INDEX IF NOT EXISTS idx_activity_user_created ON activity_history(username, created_at);
-		CREATE INDEX IF NOT EXISTS idx_img_user ON uploaded_images(username, created_at);
-		CREATE INDEX IF NOT EXISTS idx_img_hash ON uploaded_images(image_hash);
-		`
-		_, err := DB.Exec(sqliteSchema)
-		if err != nil {
-			log.Fatalf("Failed to initialize SQLite database schema: %v", err)
+		sqliteStmts := []string{
+			`CREATE TABLE IF NOT EXISTS users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT UNIQUE NOT NULL,
+				password_hash TEXT NOT NULL,
+				full_name TEXT,
+				email TEXT,
+				role TEXT DEFAULT 'user',
+				totp_secret TEXT,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+			`CREATE TABLE IF NOT EXISTS calculation_history (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT NOT NULL,
+				payload TEXT NOT NULL,
+				image_hash TEXT,
+				image_name TEXT,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+			`CREATE TABLE IF NOT EXISTS activity_history (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT NOT NULL,
+				activity_type TEXT NOT NULL,
+				action_name TEXT NOT NULL,
+				description TEXT,
+				details TEXT,
+				ip_address TEXT,
+				image_hash TEXT,
+				image_name TEXT,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+			`CREATE TABLE IF NOT EXISTS uploaded_images (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				username TEXT NOT NULL,
+				image_hash TEXT NOT NULL,
+				image_name TEXT NOT NULL,
+				file_path TEXT NOT NULL,
+				overlay_path TEXT,
+				file_size INTEGER DEFAULT 0,
+				mime_type TEXT,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+			`CREATE TABLE IF NOT EXISTS settings (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				setting_key TEXT UNIQUE NOT NULL,
+				setting_value TEXT NOT NULL,
+				updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);`,
+			`CREATE INDEX IF NOT EXISTS idx_calc_user_created ON calculation_history(username, created_at);`,
+			`CREATE INDEX IF NOT EXISTS idx_activity_user_created ON activity_history(username, created_at);`,
+			`CREATE INDEX IF NOT EXISTS idx_img_user ON uploaded_images(username, created_at);`,
+			`CREATE INDEX IF NOT EXISTS idx_img_hash ON uploaded_images(image_hash);`,
+		}
+		for _, stmt := range sqliteStmts {
+			if _, err := DB.Exec(stmt); err != nil {
+				log.Printf("SQLite schema migration warning: %v", err)
+			}
 		}
 
 		// Ensure columns exist on previously created SQLite tables

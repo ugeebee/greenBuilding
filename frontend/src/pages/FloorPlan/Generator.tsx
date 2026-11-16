@@ -386,7 +386,7 @@ export default function FloorPlanGenerator() {
     const runValidation = async () => {
       try {
         setBackendStatus('validating');
-        const authToken = localStorage.getItem('token');
+        const authToken = localStorage.getItem('token') || localStorage.getItem('admin_token');
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (authToken) {
           headers['Authorization'] = `Bearer ${authToken}`;

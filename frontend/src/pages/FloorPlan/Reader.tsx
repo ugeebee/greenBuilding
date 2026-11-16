@@ -101,21 +101,24 @@ export default function FloorPlanReader() {
     try {
       let res: Response;
       const ppmNum = parseFloat(ppm) || 0;
-      const authToken = localStorage.getItem('token');
+      const authToken = localStorage.getItem('token') || localStorage.getItem('admin_token');
       const authHeaders: Record<string, string> = {};
       if (authToken) {
         authHeaders['Authorization'] = `Bearer ${authToken}`;
       }
+      const clientUser = localStorage.getItem('username') || '';
 
       if (uploadedFile) {
         const formData = new FormData();
         formData.append('file', uploadedFile);
         formData.append('method', 'hybrid');
         if (ppmNum > 0) formData.append('pixels_per_meter', ppmNum.toString());
+        if (clientUser) formData.append('username', clientUser);
 
         res = await fetch('/api/floorplan/analyze', {
           method: 'POST',
           headers: authHeaders,
+          credentials: 'include',
           body: formData,
         });
       } else if (selectedSample) {
@@ -125,10 +128,12 @@ export default function FloorPlanReader() {
             'Content-Type': 'application/json',
             ...authHeaders,
           },
+          credentials: 'include',
           body: JSON.stringify({
             sample: selectedSample.filename,
             method: 'hybrid',
             pixels_per_meter: ppmNum > 0 ? ppmNum : undefined,
+            username: clientUser || undefined,
           }),
         });
       } else {

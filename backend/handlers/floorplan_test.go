@@ -2,10 +2,17 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
+
+	"greenbuilding-backend/database"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestFloorPlanPresetsHandler(t *testing.T) {
@@ -180,5 +187,80 @@ func TestFloorPlanAnalyzeHandler(t *testing.T) {
 
 	if resp["status"] != "success" {
 		t.Errorf("expected status 'success', got %v", resp["status"])
+	}
+}
+
+func TestFloorPlanAnalyzeHandler_TrackActivity(t *testing.T) {
+	os.Setenv("APP_ENV", "development")
+	os.Setenv("DB_DRIVER", "sqlite3")
+	os.Setenv("DB_NAME", ":memory:")
+	os.Setenv("JWT_SECRET", "test-secret-key-1234567890")
+
+	InitConfig()
+	database.InitDB()
+
+	// Generate token for user "utkarsh"
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &jwt.RegisteredClaims{
+		Subject:   "utkarsh",
+		ExpiresAt: jwt.NewNumericDate(expirationTime),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	reqBody := map[string]interface{}{
+		"sample":           "sample_1bhk.png",
+		"method":           "hybrid",
+		"pixels_per_meter": 59.45,
+	}
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest("POST", "/api/floorplan/analyze", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+	w := httptest.NewRecorder()
+
+	FloorPlanAnalyzeHandler(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Verify user activity is recorded for "utkarsh"
+	actReq := httptest.NewRequest("GET", "/api/user/activities", nil)
+	ctx := context.WithValue(actReq.Context(), "username", "utkarsh")
+	actReq = actReq.WithContext(ctx)
+	actW := httptest.NewRecorder()
+
+	GetUserActivitiesHandler(actW, actReq)
+	if actW.Code != http.StatusOK {
+		t.Fatalf("expected status 200 from GetUserActivitiesHandler, got %d", actW.Code)
+	}
+
+	var acts []ActivityRecord
+	if err := json.NewDecoder(actW.Body).Decode(&acts); err != nil {
+		t.Fatalf("failed to decode activities: %v", err)
+	}
+
+	found := false
+	for _, a := range acts {
+		if a.ActivityType == "FLOORPLAN_ANALYZED" && a.Username == "utkarsh" {
+			found = true
+			if a.ImageName != "sample_1bhk.png" {
+				t.Errorf("expected ImageName 'sample_1bhk.png', got '%s'", a.ImageName)
+			}
+			if len(a.ImageHash) != 64 {
+				t.Errorf("expected 64-char SHA256 ImageHash, got '%s'", a.ImageHash)
+			}
+			if a.ImageURL == "" {
+				t.Errorf("expected non-empty ImageURL")
+			}
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("expected FLOORPLAN_ANALYZED activity for user 'utkarsh' in activity log, but not found among %d activities", len(acts))
 	}
 }

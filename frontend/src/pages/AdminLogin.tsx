@@ -39,6 +39,8 @@ export default function AdminLogin() {
 
       if (response.ok) {
         localStorage.setItem('admin_token', data.token || data);
+        localStorage.setItem('token', data.token || data);
+        localStorage.setItem('username', username);
         navigate('/admin/dashboard');
       } else {
         let errorText = 'Login Failed';

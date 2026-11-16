@@ -20,7 +20,7 @@ export default function History() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
         const response = await fetch(`${API_BASE_URL}/history`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -30,6 +30,7 @@ export default function History() {
         if (response.status === 401) {
           setError('Unauthorized. Please log in again.');
           localStorage.removeItem('token');
+          localStorage.removeItem('admin_token');
           navigate('/login');
           return;
         }
@@ -55,7 +56,7 @@ export default function History() {
   const fetchActivities = async () => {
     setActivitiesLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('admin_token');
       const response = await fetch(`${API_BASE_URL}/user/activities`, {
         headers: {
           'Authorization': `Bearer ${token}`

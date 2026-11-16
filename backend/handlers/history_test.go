@@ -8,8 +8,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"greenbuilding-backend/database"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestHistoryWithRealDatabase(t *testing.T) {
@@ -177,6 +180,37 @@ func TestHistoryWithRealDatabase(t *testing.T) {
 	}
 	if latestItem["image_url"] == nil || latestItem["image_url"] == "" {
 		t.Fatalf("expected non-empty image_url")
+	}
+}
+
+func TestGetUsernameFromRequest(t *testing.T) {
+	os.Setenv("APP_ENV", "development")
+	os.Setenv("JWT_SECRET", "test-secret-key-1234567890")
+	InitConfig()
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &jwt.RegisteredClaims{
+		Subject:   "testuser",
+		ExpiresAt: jwt.NewNumericDate(expirationTime),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/api/floorplan/analyze", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenString)
+
+	username := GetUsernameFromRequest(req)
+	if username != "testuser" {
+		t.Fatalf("expected username 'testuser', got '%s'", username)
+	}
+
+	// Test case 2: Request has expired/invalid cookie, but VALID Authorization header
+	req.AddCookie(&http.Cookie{Name: "jwt_token", Value: "invalid-or-expired-cookie-value"})
+	usernameWithStaleCookie := GetUsernameFromRequest(req)
+	if usernameWithStaleCookie != "testuser" {
+		t.Fatalf("expected username 'testuser' from Authorization header when cookie is invalid, got '%s'", usernameWithStaleCookie)
 	}
 }
 
