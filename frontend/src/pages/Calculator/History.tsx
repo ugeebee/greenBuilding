@@ -152,6 +152,30 @@ export default function History() {
                     <p className="text-xs text-slate-600 dark:text-zinc-400">
                       {act.description}
                     </p>
+                    {act.image_hash && (
+                      <div className="flex items-center gap-2 mt-2 pt-1 border-t border-slate-100 dark:border-zinc-800">
+                        <div className="w-8 h-8 rounded border overflow-hidden bg-slate-100 shrink-0">
+                          <img
+                            src={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
+                            alt="Blueprint"
+                            className="w-full h-full object-cover"
+                            onError={(e: any) => { e.target.style.display = 'none'; }}
+                          />
+                        </div>
+                        <div className="text-[11px]">
+                          <span className="font-semibold text-slate-700 dark:text-zinc-300 block">{act.image_name || "Blueprint Plan"}</span>
+                          <span className="font-mono text-[9px] text-slate-400">SHA-256: {act.image_hash.slice(0, 16)}...</span>
+                        </div>
+                        <a
+                          href={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-indigo-600 hover:underline ml-auto font-medium"
+                        >
+                          View Image
+                        </a>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <div className="flex items-center sm:justify-end gap-1 text-[11px] text-muted-foreground">
@@ -228,6 +252,31 @@ export default function History() {
                         <div className="text-lg font-black text-rose-600">{(item.data.totals?.Qv || 0).toFixed(2)}W</div>
                       </div>
                     </div>
+
+                    {item.image_hash && (
+                      <div className="flex items-center gap-3 mt-4 pt-3 border-t border-slate-100">
+                        <div className="w-10 h-10 rounded border overflow-hidden bg-slate-100 shrink-0">
+                          <img
+                            src={item.image_url || `/api/uploads/blueprints/${item.image_hash}.png`}
+                            alt="Blueprint"
+                            className="w-full h-full object-cover"
+                            onError={(e: any) => { e.target.style.display = 'none'; }}
+                          />
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-semibold text-slate-800 block">{item.image_name || "Floor Plan Blueprint"}</span>
+                          <span className="font-mono text-[10px] text-slate-400">SHA-256: {item.image_hash.slice(0, 20)}...</span>
+                        </div>
+                        <a
+                          href={item.image_url || `/api/uploads/blueprints/${item.image_hash}.png`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-indigo-600 hover:underline ml-auto font-medium"
+                        >
+                          View Blueprint
+                        </a>
+                      </div>
+                    )}
                   </CardHeader>
 
                   {expandedIndex === index && (

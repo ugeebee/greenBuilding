@@ -54,6 +54,10 @@ func main() {
 	mux.HandleFunc("/api/validate", handlers.FloorPlanValidateHandler)
 	mux.HandleFunc("/api/validate-multi-room", handlers.FloorPlanValidateMultiRoomHandler)
 
+	// Uploads file server (blueprints, overlays)
+	uploadsDir := handlers.GetUploadsDir()
+	mux.Handle("/api/uploads/", http.StripPrefix("/api/uploads/", http.FileServer(http.Dir(uploadsDir))))
+
 	calcDirectory := "../frontend/calculator"
 	fileServer := http.FileServer(http.Dir(calcDirectory))
 
@@ -88,7 +92,7 @@ func main() {
 		port = ":" + port
 	}
 
-	fmt.Printf("🚀 Green Building Backend starting securely on port %s\n", port)
+	fmt.Printf("Green Building Backend starting securely on port %s\n", port)
 
 	serverErr := http.ListenAndServe(port, handler)
 	if serverErr != nil {

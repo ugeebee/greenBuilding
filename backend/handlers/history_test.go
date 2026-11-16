@@ -127,5 +127,56 @@ func TestHistoryWithRealDatabase(t *testing.T) {
 	if len(acts) < 1 {
 		t.Fatalf("expected at least 1 tracked activity, got %d", len(acts))
 	}
+
+	// 6. Test image saving, hashing and calculation linkage
+	testImgData := []byte("fake-png-blueprint-image-data-for-testing")
+	imgHash, bpURL, ovURL, err := SaveUploadedImage("utkarsh", "sample_test_blueprint.png", testImgData, nil)
+	if err != nil {
+		t.Fatalf("SaveUploadedImage failed: %v", err)
+	}
+	if len(imgHash) != 64 {
+		t.Fatalf("expected 64-char SHA-256 hash, got %s (len: %d)", imgHash, len(imgHash))
+	}
+	if bpURL == "" {
+		t.Fatalf("expected non-empty bpURL")
+	}
+	_ = ovURL
+
+	// Save calculation with image hash and name
+	calcWithImage := map[string]interface{}{
+		"roomName":   "Living Room",
+		"heatGain":   4500,
+		"image_hash": imgHash,
+		"image_name": "sample_test_blueprint.png",
+	}
+	bImg, _ := json.Marshal(calcWithImage)
+	rImg := httptest.NewRequest("POST", "/api/save", bytes.NewReader(bImg))
+	rImg = rImg.WithContext(ctx)
+	rwImg := httptest.NewRecorder()
+	SaveHistoryHandler(rwImg, rImg)
+	if rwImg.Code != http.StatusCreated {
+		t.Fatalf("failed to save calculation with image: %s", rwImg.Body.String())
+	}
+
+	// Retrieve user history and verify image fields
+	getReq3 := httptest.NewRequest("GET", "/api/history", nil)
+	getReq3 = getReq3.WithContext(ctx)
+	getW3 := httptest.NewRecorder()
+	GetHistoryHandler(getW3, getReq3)
+	var historyWithImg []map[string]interface{}
+	json.NewDecoder(getW3.Body).Decode(&historyWithImg)
+	if len(historyWithImg) == 0 {
+		t.Fatalf("expected history items, got 0")
+	}
+	latestItem := historyWithImg[0]
+	if latestItem["image_hash"] != imgHash {
+		t.Fatalf("expected image_hash %s, got %v", imgHash, latestItem["image_hash"])
+	}
+	if latestItem["image_name"] != "sample_test_blueprint.png" {
+		t.Fatalf("expected image_name 'sample_test_blueprint.png', got %v", latestItem["image_name"])
+	}
+	if latestItem["image_url"] == nil || latestItem["image_url"] == "" {
+		t.Fatalf("expected non-empty image_url")
+	}
 }
 

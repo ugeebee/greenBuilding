@@ -86,6 +86,12 @@ export default function Wizard() {
             sgf: '0.86'
           })));
         }
+        if (prefill.image_hash) {
+          sessionStorage.setItem('gb_calculator_image_hash', prefill.image_hash);
+        }
+        if (prefill.image_name) {
+          sessionStorage.setItem('gb_calculator_image_name', prefill.image_name);
+        }
         setImportedSource(prefill.source || 'Floor Plan Tool');
       }
     } catch (err) {
@@ -329,6 +335,15 @@ export default function Wizard() {
         e: s === 'Roof' ? (parseFloat(sp.e) || 0) : 0
       };
     });
+
+    const imgHash = sessionStorage.getItem('gb_calculator_image_hash') || '';
+    const imgName = sessionStorage.getItem('gb_calculator_image_name') || '';
+    if (imgHash) {
+      (data as any).image_hash = imgHash;
+    }
+    if (imgName) {
+      (data as any).image_name = imgName;
+    }
 
     localStorage.setItem('demoOutput', JSON.stringify(data));
     navigate('/calculator/uvalues');

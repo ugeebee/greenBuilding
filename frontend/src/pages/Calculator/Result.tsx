@@ -9,6 +9,8 @@ const API_BASE_URL = '/api';
 export default function Result() {
   const [tableData, setTableData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [linkedImageHash, setLinkedImageHash] = useState<string>('');
+  const [linkedImageName, setLinkedImageName] = useState<string>('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
@@ -24,6 +26,17 @@ export default function Result() {
 
       const demoData = JSON.parse(demoDataStr);
       const uCalcData = JSON.parse(uCalcDataStr);
+
+      let imgHash = sessionStorage.getItem('gb_calculator_image_hash') || '';
+      let imgName = sessionStorage.getItem('gb_calculator_image_name') || '';
+      if (!imgHash && demoData.image_hash) {
+        imgHash = demoData.image_hash;
+      }
+      if (!imgName && demoData.image_name) {
+        imgName = demoData.image_name;
+      }
+      setLinkedImageHash(imgHash);
+      setLinkedImageName(imgName);
 
       const l = demoData.room.length;
       const b = demoData.room.breadth;
@@ -154,10 +167,16 @@ export default function Result() {
     
     const authToken = localStorage.getItem('token');
     
-    const payload = {
+    const payload: any = {
       details: tableData,
       totals: summary
     };
+    if (linkedImageHash) {
+      payload.image_hash = linkedImageHash;
+    }
+    if (linkedImageName) {
+      payload.image_name = linkedImageName;
+    }
 
     try {
       const response = await fetch(`${API_BASE_URL}/save`, {
@@ -203,6 +222,17 @@ export default function Result() {
             </div>
           ) : (
             <>
+              {linkedImageHash && (
+                <div className="flex items-center gap-3 p-3 mb-4 rounded-xl border border-sky-100 bg-sky-50/50 dark:bg-sky-950/20 text-xs text-sky-800 dark:text-sky-300">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-sky-200 bg-white shrink-0">
+                    <img src={`/api/uploads/blueprints/${linkedImageHash}.png`} alt="Floor Plan" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <span className="font-bold block">Linked Blueprint: {linkedImageName || 'Floor Plan'}</span>
+                    <span className="font-mono text-[10px] text-slate-500">SHA-256: {linkedImageHash.slice(0, 20)}...</span>
+                  </div>
+                </div>
+              )}
               <div className="overflow-x-auto rounded-md border">
                 <table className="w-full text-sm text-center">
                   <thead className="bg-emerald-600 text-white">

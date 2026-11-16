@@ -48,7 +48,7 @@ func InitDB() {
 		// Open SQLite database file for development
 		DB, err = sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
 		if err != nil {
-			log.Fatalf("❌ [%s] Failed to open SQLite database '%s': %v", CurrentEnv, dbPath, err)
+			log.Fatalf("[%s] Failed to open SQLite database '%s': %v", CurrentEnv, dbPath, err)
 		}
 		DB.SetMaxOpenConns(1)
 
@@ -58,7 +58,7 @@ func InitDB() {
 	case "mysql":
 		addr := os.Getenv("DB_ADDR")
 		if addr == "" {
-			log.Fatalf("❌ [%s] DB_ADDR is required for MySQL database connection in %s environment", CurrentEnv, CurrentEnv)
+			log.Fatalf("[%s] DB_ADDR is required for MySQL database connection in %s environment", CurrentEnv, CurrentEnv)
 		}
 
 		cfg := mysql.Config{
@@ -74,7 +74,7 @@ func InitDB() {
 
 		DB, err = sql.Open("mysql", cfg.FormatDSN())
 		if err != nil {
-			log.Fatalf("❌ [%s] Failed to open MySQL connection: %v", CurrentEnv, err)
+			log.Fatalf("[%s] Failed to open MySQL connection: %v", CurrentEnv, err)
 		}
 
 		DB.SetMaxOpenConns(25)
@@ -85,12 +85,12 @@ func InitDB() {
 		migrateSchema()
 
 	default:
-		log.Fatalf("❌ [%s] Unsupported DB_DRIVER '%s'. Supported drivers: sqlite3, mysql", CurrentEnv, CurrentDriver)
+		log.Fatalf("[%s] Unsupported DB_DRIVER '%s'. Supported drivers: sqlite3, mysql", CurrentEnv, CurrentDriver)
 	}
 
 	// Strictly verify database connection
 	if err = DB.Ping(); err != nil {
-		log.Fatalf("❌ [%s] Database connection failed for %s (%v)", CurrentEnv, CurrentDriver, err)
+		log.Fatalf("[%s] Database connection failed for %s (%v)", CurrentEnv, CurrentDriver, err)
 	}
 
 	// Initial 30-day retention prune on startup
@@ -105,7 +105,7 @@ func InitDB() {
 		}
 	}()
 
-	fmt.Printf("✅ [%s] Connected successfully to %s database!\n", strings.ToUpper(CurrentEnv), CurrentDriver)
+	fmt.Printf("[%s] Connected successfully to %s database!\n", strings.ToUpper(CurrentEnv), CurrentDriver)
 }
 
 // PruneHistoryOlderThan30Days removes records strictly older than 30 days across all history tables
@@ -118,21 +118,29 @@ func PruneHistoryOlderThan30Days() error {
 	if CurrentDriver == "mysql" {
 		_, err = DB.Exec("DELETE FROM calculation_history WHERE created_at < NOW() - INTERVAL 30 DAY")
 		if err != nil {
-			log.Printf("⚠️ Error pruning calculation_history: %v", err)
+			log.Printf("Error pruning calculation_history: %v", err)
 		}
 		_, err = DB.Exec("DELETE FROM activity_history WHERE created_at < NOW() - INTERVAL 30 DAY")
 		if err != nil {
-			log.Printf("⚠️ Error pruning activity_history: %v", err)
+			log.Printf("Error pruning activity_history: %v", err)
+		}
+		_, err = DB.Exec("DELETE FROM uploaded_images WHERE created_at < NOW() - INTERVAL 30 DAY")
+		if err != nil {
+			log.Printf("Error pruning uploaded_images: %v", err)
 		}
 	} else {
 		// SQLite
 		_, err = DB.Exec("DELETE FROM calculation_history WHERE created_at < datetime('now', '-30 days')")
 		if err != nil {
-			log.Printf("⚠️ Error pruning calculation_history: %v", err)
+			log.Printf("Error pruning calculation_history: %v", err)
 		}
 		_, err = DB.Exec("DELETE FROM activity_history WHERE created_at < datetime('now', '-30 days')")
 		if err != nil {
-			log.Printf("⚠️ Error pruning activity_history: %v", err)
+			log.Printf("Error pruning activity_history: %v", err)
+		}
+		_, err = DB.Exec("DELETE FROM uploaded_images WHERE created_at < datetime('now', '-30 days')")
+		if err != nil {
+			log.Printf("Error pruning uploaded_images: %v", err)
 		}
 	}
 	return err
@@ -155,8 +163,11 @@ func migrateSchema() {
 				id INT AUTO_INCREMENT PRIMARY KEY,
 				username VARCHAR(255) NOT NULL,
 				payload MEDIUMTEXT NOT NULL,
+				image_hash VARCHAR(64),
+				image_name VARCHAR(255),
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				INDEX idx_calc_user_created (username, created_at)
+				INDEX idx_calc_user_created (username, created_at),
+				INDEX idx_calc_image_hash (image_hash)
 			);`,
 			`CREATE TABLE IF NOT EXISTS activity_history (
 				id INT AUTO_INCREMENT PRIMARY KEY,
@@ -166,8 +177,24 @@ func migrateSchema() {
 				description TEXT,
 				details MEDIUMTEXT,
 				ip_address VARCHAR(100),
+				image_hash VARCHAR(64),
+				image_name VARCHAR(255),
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				INDEX idx_activity_user_created (username, created_at)
+				INDEX idx_activity_user_created (username, created_at),
+				INDEX idx_activity_image_hash (image_hash)
+			);`,
+			`CREATE TABLE IF NOT EXISTS uploaded_images (
+				id INT AUTO_INCREMENT PRIMARY KEY,
+				username VARCHAR(255) NOT NULL,
+				image_hash VARCHAR(64) NOT NULL,
+				image_name VARCHAR(255) NOT NULL,
+				file_path VARCHAR(500) NOT NULL,
+				overlay_path VARCHAR(500),
+				file_size INT DEFAULT 0,
+				mime_type VARCHAR(100),
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				INDEX idx_img_user (username, created_at),
+				INDEX idx_img_hash (image_hash)
 			);`,
 			`CREATE TABLE IF NOT EXISTS settings (
 				id INT AUTO_INCREMENT PRIMARY KEY,
@@ -178,9 +205,14 @@ func migrateSchema() {
 		}
 		for _, stmt := range mysqlStmts {
 			if _, err := DB.Exec(stmt); err != nil {
-				log.Printf("⚠️ MySQL schema migration warning: %v", err)
+				log.Printf("MySQL schema migration warning: %v", err)
 			}
 		}
+		// Ensure columns exist on previously created MySQL tables
+		_, _ = DB.Exec("ALTER TABLE calculation_history ADD COLUMN image_hash VARCHAR(64);")
+		_, _ = DB.Exec("ALTER TABLE calculation_history ADD COLUMN image_name VARCHAR(255);")
+		_, _ = DB.Exec("ALTER TABLE activity_history ADD COLUMN image_hash VARCHAR(64);")
+		_, _ = DB.Exec("ALTER TABLE activity_history ADD COLUMN image_name VARCHAR(255);")
 	} else {
 		sqliteSchema := `
 		CREATE TABLE IF NOT EXISTS users (
@@ -198,6 +230,8 @@ func migrateSchema() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			username TEXT NOT NULL,
 			payload TEXT NOT NULL,
+			image_hash TEXT,
+			image_name TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 
@@ -209,6 +243,20 @@ func migrateSchema() {
 			description TEXT,
 			details TEXT,
 			ip_address TEXT,
+			image_hash TEXT,
+			image_name TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE TABLE IF NOT EXISTS uploaded_images (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL,
+			image_hash TEXT NOT NULL,
+			image_name TEXT NOT NULL,
+			file_path TEXT NOT NULL,
+			overlay_path TEXT,
+			file_size INTEGER DEFAULT 0,
+			mime_type TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 
@@ -221,11 +269,19 @@ func migrateSchema() {
 
 		CREATE INDEX IF NOT EXISTS idx_calc_user_created ON calculation_history(username, created_at);
 		CREATE INDEX IF NOT EXISTS idx_activity_user_created ON activity_history(username, created_at);
+		CREATE INDEX IF NOT EXISTS idx_img_user ON uploaded_images(username, created_at);
+		CREATE INDEX IF NOT EXISTS idx_img_hash ON uploaded_images(image_hash);
 		`
 		_, err := DB.Exec(sqliteSchema)
 		if err != nil {
-			log.Fatalf("❌ Failed to initialize development database schema: %v", err)
+			log.Fatalf("Failed to initialize SQLite database schema: %v", err)
 		}
+
+		// Ensure columns exist on previously created SQLite tables
+		_, _ = DB.Exec("ALTER TABLE calculation_history ADD COLUMN image_hash TEXT;")
+		_, _ = DB.Exec("ALTER TABLE calculation_history ADD COLUMN image_name TEXT;")
+		_, _ = DB.Exec("ALTER TABLE activity_history ADD COLUMN image_hash TEXT;")
+		_, _ = DB.Exec("ALTER TABLE activity_history ADD COLUMN image_name TEXT;")
 
 		// Seed initial development user if table is empty
 		var count int

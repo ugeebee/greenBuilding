@@ -317,6 +317,30 @@ export default function AdminDashboard() {
                             {item.data?.details?.length > 3 && (
                               <p className="text-[10px] text-center font-bold text-zinc-400 pt-1">+ {item.data.details.length - 3} more surfaces</p>
                             )}
+                            {item.image_hash && (
+                              <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                                <div className="w-8 h-8 rounded border overflow-hidden bg-zinc-100 shrink-0">
+                                  <img
+                                    src={item.image_url || `/api/uploads/blueprints/${item.image_hash}.png`}
+                                    alt="Blueprint"
+                                    className="w-full h-full object-cover"
+                                    onError={(e: any) => { e.target.style.display = 'none'; }}
+                                  />
+                                </div>
+                                <div className="text-[10px]">
+                                  <span className="font-semibold text-zinc-700 dark:text-zinc-300 block">{item.image_name || "Blueprint Plan"}</span>
+                                  <span className="font-mono text-[9px] text-zinc-400">SHA-256: {item.image_hash.slice(0, 16)}...</span>
+                                </div>
+                                <a
+                                  href={item.image_url || `/api/uploads/blueprints/${item.image_hash}.png`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] text-emerald-600 hover:underline ml-auto font-medium"
+                                >
+                                  View
+                                </a>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -341,6 +365,30 @@ export default function AdminDashboard() {
                             <span className="font-bold text-sm">{act.action_name}</span>
                           </div>
                           <p className="text-xs text-zinc-500">{act.description}</p>
+                          {act.image_hash && (
+                            <div className="flex items-center gap-2 mt-2 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                              <div className="w-7 h-7 rounded border overflow-hidden bg-zinc-100 shrink-0">
+                                <img
+                                  src={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
+                                  alt="Blueprint"
+                                  className="w-full h-full object-cover"
+                                  onError={(e: any) => { e.target.style.display = 'none'; }}
+                                />
+                              </div>
+                              <div className="text-[10px]">
+                                <span className="font-semibold text-zinc-700 dark:text-zinc-300 block">{act.image_name || "Blueprint"}</span>
+                                <span className="font-mono text-[9px] text-zinc-400">SHA-256: {act.image_hash.slice(0, 12)}...</span>
+                              </div>
+                              <a
+                                href={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[10px] text-emerald-600 hover:underline ml-auto font-medium"
+                              >
+                                View
+                              </a>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <div className="text-xs font-semibold text-zinc-600">
@@ -426,6 +474,19 @@ export default function AdminDashboard() {
                             <td className="px-6 py-3.5 text-zinc-600 dark:text-zinc-300">
                               <span className="font-semibold block">{act.action_name}</span>
                               <span className="text-[11px] text-zinc-400">{act.description}</span>
+                              {act.image_hash && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <a
+                                    href={act.image_url || `/api/uploads/blueprints/${act.image_hash}.png`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    {act.image_name || "Blueprint Plan"} ({act.image_hash.slice(0, 10)}...)
+                                  </a>
+                                </div>
+                              )}
                             </td>
                             <td className="px-6 py-3.5 font-mono text-[11px] text-zinc-400">
                               {act.ip_address || '—'}

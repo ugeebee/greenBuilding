@@ -709,6 +709,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	defer os.RemoveAll(tempDir)
 
 	var targetImagePath string
+	var originalFilename = "blueprint.png"
 	method := "hybrid"
 	var ppmVal float64 = 0.0
 
@@ -730,6 +731,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 		file, header, err := r.FormFile("file")
 		if err == nil {
 			defer file.Close()
+			originalFilename = header.Filename
 			targetImagePath = filepath.Join(tempDir, header.Filename)
 			dst, err := os.Create(targetImagePath)
 			if err != nil {
@@ -742,6 +744,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 			// Might be a sample name request
 			sampleName := r.FormValue("sample")
 			if sampleName != "" {
+				originalFilename = sampleName
 				targetImagePath = resolveSamplePath(sampleName)
 			}
 		}
@@ -761,6 +764,7 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 				ppmVal = body.PixelsPerMeter
 			}
 			if body.SampleName != "" {
+				originalFilename = body.SampleName
 				targetImagePath = resolveSamplePath(body.SampleName)
 			} else if body.ImageBase64 != "" {
 				// decode base64
@@ -842,11 +846,32 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 
 	parsedResult["processing_time_ms"] = time.Since(startTime).Milliseconds()
 
-	// Track floor plan analysis activity
+	// Track floor plan analysis activity & persist image with SHA-256 hash
 	user := GetUsernameFromRequest(r)
 	if user == "" {
 		user = "anonymous"
 	}
+
+	var imageHash, blueprintURL, overlayURL string
+	if targetImagePath != "" {
+		if imgBytes, err := os.ReadFile(targetImagePath); err == nil && len(imgBytes) > 0 {
+			var overlayBytes []byte
+			if fileExists(outOverlay) {
+				overlayBytes, _ = os.ReadFile(outOverlay)
+			}
+			h, bURL, oURL, saveErr := SaveUploadedImage(user, originalFilename, imgBytes, overlayBytes)
+			if saveErr == nil {
+				imageHash = h
+				blueprintURL = bURL
+				overlayURL = oURL
+				parsedResult["image_hash"] = imageHash
+				parsedResult["image_name"] = originalFilename
+				parsedResult["image_url"] = blueprintURL
+				parsedResult["overlay_url"] = overlayURL
+			}
+		}
+	}
+
 	var roomCount, doorCount, winCount int
 	if analysis, ok := parsedResult["analysis"].(map[string]interface{}); ok {
 		if rList, ok := analysis["rooms"].([]interface{}); ok {
@@ -859,16 +884,18 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 			winCount = len(wList)
 		}
 	}
-	desc := fmt.Sprintf("Analyzed blueprint (%s engine): detected %d room(s), %d door(s), %d window(s)", method, roomCount, doorCount, winCount)
+	desc := fmt.Sprintf("Analyzed blueprint '%s' (%s engine): detected %d room(s), %d door(s), %d window(s)", originalFilename, method, roomCount, doorCount, winCount)
 	detailsMap := map[string]interface{}{
 		"method":             method,
+		"image_name":         originalFilename,
+		"image_hash":         imageHash,
 		"rooms_detected":    roomCount,
 		"doors_detected":    doorCount,
 		"windows_detected":  winCount,
 		"processing_time_ms": parsedResult["processing_time_ms"],
 	}
 	detailsStr, _ := json.Marshal(detailsMap)
-	TrackActivityForUser(user, r, "FLOORPLAN_ANALYZED", "Blueprint Analysis Executed", desc, string(detailsStr))
+	TrackActivityWithImage(user, r, "FLOORPLAN_ANALYZED", "Blueprint Analysis Executed", desc, string(detailsStr), imageHash, originalFilename)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(parsedResult)

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -11,22 +13,31 @@ import (
 func SaveHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	username, _ := r.Context().Value("username").(string)
 
-	var data interface{}
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil || len(bodyBytes) == 0 {
 		http.Error(w, "Invalid data payload", http.StatusBadRequest)
 		return
 	}
 
-	payload, err := json.Marshal(data)
-	if err != nil {
-		http.Error(w, "Error encoding payload", http.StatusInternalServerError)
-		return
+	var imageHash, imageName string
+	var parsedMap map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &parsedMap); err == nil {
+		if val, ok := parsedMap["image_hash"].(string); ok {
+			imageHash = val
+		} else if val, ok := parsedMap["imageHash"].(string); ok {
+			imageHash = val
+		}
+		if val, ok := parsedMap["image_name"].(string); ok {
+			imageName = val
+		} else if val, ok := parsedMap["imageName"].(string); ok {
+			imageName = val
+		}
 	}
 
 	// 30-day retention: save calculation and prune any records older than 30 days
 	_, err = database.DB.Exec(
-		"INSERT INTO calculation_history (username, payload) VALUES (?, ?)",
-		username, payload,
+		"INSERT INTO calculation_history (username, payload, image_hash, image_name) VALUES (?, ?, ?, ?)",
+		username, string(bodyBytes), imageHash, imageName,
 	)
 	if err != nil {
 		log.Printf("SaveHistory DB error: %v", err)
@@ -37,14 +48,16 @@ func SaveHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	// Prune records older than 30 days
 	_ = database.PruneHistoryOlderThan30Days()
 
-	// Track user activity
-	TrackActivityForUser(
+	// Track user activity with image linkage
+	TrackActivityWithImage(
 		username,
 		r,
 		"CALCULATION_SAVED",
 		"Heat Load Calculation Saved",
 		"Saved heat load calculation results to 30-day database history",
-		string(payload),
+		string(bodyBytes),
+		imageHash,
+		imageName,
 	)
 
 	w.WriteHeader(http.StatusCreated)
@@ -61,9 +74,9 @@ func GetHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	if database.CurrentDriver == "mysql" {
-		query = "SELECT payload, created_at FROM calculation_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC"
+		query = "SELECT payload, image_hash, image_name, created_at FROM calculation_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC"
 	} else {
-		query = "SELECT payload, created_at FROM calculation_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC"
+		query = "SELECT payload, image_hash, image_name, created_at FROM calculation_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC"
 	}
 
 	rows, err := database.DB.Query(query, username)
@@ -77,10 +90,22 @@ func GetHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	results := []interface{}{}
 	for rows.Next() {
 		var pStr, date string
-		if err := rows.Scan(&pStr, &date); err == nil {
+		var imgHash, imgName sql.NullString
+		if err := rows.Scan(&pStr, &imgHash, &imgName, &date); err == nil {
 			var p interface{}
 			json.Unmarshal([]byte(pStr), &p)
-			results = append(results, map[string]interface{}{"data": p, "timestamp": date})
+			item := map[string]interface{}{
+				"data":      p,
+				"timestamp": date,
+			}
+			if imgHash.Valid && imgHash.String != "" {
+				item["image_hash"] = imgHash.String
+				item["image_url"] = "/api/uploads/blueprints/" + imgHash.String + ".png"
+			}
+			if imgName.Valid && imgName.String != "" {
+				item["image_name"] = imgName.String
+			}
+			results = append(results, item)
 		}
 	}
 

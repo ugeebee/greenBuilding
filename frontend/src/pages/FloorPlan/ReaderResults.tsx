@@ -644,7 +644,17 @@ export default function FloorPlanResults() {
       unitHeight: 'm',
       doors: nearDoors.length > 0 ? nearDoors : [{ wall: 'S', width: '0.9', height: '2.1', area: '1.89' }],
       windows: nearWindows.length > 0 ? nearWindows : [{ wall: 'N', width: '1.4', height: '1.4', area: '1.96', shgc: '0.40', uValue: '3.0' }],
+      image_hash: (result as any)?.image_hash || '',
+      image_name: (result as any)?.image_name || '',
+      image_url: (result as any)?.image_url || previewUrl || '',
     };
+
+    if ((result as any)?.image_hash) {
+      sessionStorage.setItem('gb_calculator_image_hash', (result as any).image_hash);
+    }
+    if ((result as any)?.image_name) {
+      sessionStorage.setItem('gb_calculator_image_name', (result as any).image_name);
+    }
 
     sessionStorage.setItem('gb_calculator_prefill', JSON.stringify(prefillData));
     navigate('/calculator');

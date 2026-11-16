@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -112,9 +113,9 @@ func GetUserHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	if database.CurrentDriver == "mysql" {
-		query = "SELECT id, payload, created_at FROM calculation_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC"
+		query = "SELECT id, payload, image_hash, image_name, created_at FROM calculation_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC"
 	} else {
-		query = "SELECT id, payload, created_at FROM calculation_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC"
+		query = "SELECT id, payload, image_hash, image_name, created_at FROM calculation_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC"
 	}
 
 	rows, err := database.DB.Query(query, username)
@@ -129,14 +130,23 @@ func GetUserHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var id int
 		var pStr, date string
-		if err := rows.Scan(&id, &pStr, &date); err == nil {
+		var imgHash, imgName sql.NullString
+		if err := rows.Scan(&id, &pStr, &imgHash, &imgName, &date); err == nil {
 			var p interface{}
 			json.Unmarshal([]byte(pStr), &p)
-			results = append(results, map[string]interface{}{
+			item := map[string]interface{}{
 				"id":        id,
 				"data":      p,
 				"timestamp": date,
-			})
+			}
+			if imgHash.Valid && imgHash.String != "" {
+				item["image_hash"] = imgHash.String
+				item["image_url"] = "/api/uploads/blueprints/" + imgHash.String + ".png"
+			}
+			if imgName.Valid && imgName.String != "" {
+				item["image_name"] = imgName.String
+			}
+			results = append(results, item)
 		}
 	}
 

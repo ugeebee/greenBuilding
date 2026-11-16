@@ -1,10 +1,15 @@
 package handlers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -22,7 +27,72 @@ type ActivityRecord struct {
 	Description  string `json:"description"`
 	Details      string `json:"details,omitempty"`
 	IPAddress    string `json:"ip_address,omitempty"`
+	ImageHash    string `json:"image_hash,omitempty"`
+	ImageName    string `json:"image_name,omitempty"`
+	ImageURL     string `json:"image_url,omitempty"`
 	CreatedAt    string `json:"created_at"`
+}
+
+// GetUploadsDir returns the directory path for persistent uploads
+func GetUploadsDir() string {
+	candidates := []string{"uploads", filepath.Join("backend", "uploads"), filepath.Join("..", "backend", "uploads")}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && fi.IsDir() {
+			return c
+		}
+	}
+	_ = os.MkdirAll("uploads", 0755)
+	return "uploads"
+}
+
+// SaveUploadedImage computes SHA-256 hash, saves the file to disk, and records metadata in database
+func SaveUploadedImage(username, originalName string, data []byte, overlayData []byte) (string, string, string, error) {
+	if len(data) == 0 {
+		return "", "", "", fmt.Errorf("empty image data")
+	}
+
+	hash := sha256.Sum256(data)
+	hashStr := hex.EncodeToString(hash[:])
+
+	ext := strings.ToLower(filepath.Ext(originalName))
+	if ext == "" || (ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".webp") {
+		ext = ".png"
+	}
+
+	baseUploads := GetUploadsDir()
+	blueprintsDir := filepath.Join(baseUploads, "blueprints")
+	overlaysDir := filepath.Join(baseUploads, "overlays")
+	_ = os.MkdirAll(blueprintsDir, 0755)
+	_ = os.MkdirAll(overlaysDir, 0755)
+
+	blueprintFilename := hashStr + ext
+	blueprintPath := filepath.Join(blueprintsDir, blueprintFilename)
+	if _, err := os.Stat(blueprintPath); os.IsNotExist(err) {
+		_ = os.WriteFile(blueprintPath, data, 0644)
+	}
+	blueprintURL := "/api/uploads/blueprints/" + blueprintFilename
+
+	var overlayURL string
+	if len(overlayData) > 0 {
+		overlayFilename := hashStr + "_overlay.png"
+		overlayPath := filepath.Join(overlaysDir, overlayFilename)
+		_ = os.WriteFile(overlayPath, overlayData, 0644)
+		overlayURL = "/api/uploads/overlays/" + overlayFilename
+	}
+
+	// Insert into uploaded_images
+	if database.DB != nil {
+		mimeType := http.DetectContentType(data)
+		_, err := database.DB.Exec(
+			"INSERT INTO uploaded_images (username, image_hash, image_name, file_path, overlay_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			username, hashStr, originalName, blueprintURL, overlayURL, len(data), mimeType,
+		)
+		if err != nil {
+			log.Printf("⚠️ Insert uploaded_images error: %v", err)
+		}
+	}
+
+	return hashStr, blueprintURL, overlayURL, nil
 }
 
 // ExtractClientIP extracts the client IP address from proxy headers or remote address
@@ -90,16 +160,20 @@ func TrackActivity(r *http.Request, activityType, actionName, description, detai
 
 // TrackActivityForUser records an activity explicitly for a given username
 func TrackActivityForUser(username string, r *http.Request, activityType, actionName, description, details string) {
+	TrackActivityWithImage(username, r, activityType, actionName, description, details, "", "")
+}
+
+// TrackActivityWithImage records an activity with associated image hash and original image name
+func TrackActivityWithImage(username string, r *http.Request, activityType, actionName, description, details, imageHash, imageName string) {
 	if database.DB == nil {
 		return
 	}
 	ip := ExtractClientIP(r)
 
-	// Prune history older than 30 days periodically/on insert
 	go func() {
 		_, err := database.DB.Exec(
-			"INSERT INTO activity_history (username, activity_type, action_name, description, details, ip_address) VALUES (?, ?, ?, ?, ?, ?)",
-			username, activityType, actionName, description, details, ip,
+			"INSERT INTO activity_history (username, activity_type, action_name, description, details, ip_address, image_hash, image_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			username, activityType, actionName, description, details, ip, imageHash, imageName,
 		)
 		if err != nil {
 			log.Printf("⚠️ TrackActivity DB error: %v", err)
@@ -120,9 +194,9 @@ func GetUserActivitiesHandler(w http.ResponseWriter, r *http.Request) {
 
 	var query string
 	if database.CurrentDriver == "mysql" {
-		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, created_at FROM activity_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC LIMIT 200"
+		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, image_hash, image_name, created_at FROM activity_history WHERE username = ? AND created_at >= NOW() - INTERVAL 30 DAY ORDER BY created_at DESC LIMIT 200"
 	} else {
-		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, created_at FROM activity_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC LIMIT 200"
+		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, image_hash, image_name, created_at FROM activity_history WHERE username = ? AND created_at >= datetime('now', '-30 days') ORDER BY created_at DESC LIMIT 200"
 	}
 
 	rows, err := database.DB.Query(query, username)
@@ -136,13 +210,20 @@ func GetUserActivitiesHandler(w http.ResponseWriter, r *http.Request) {
 	activities := []ActivityRecord{}
 	for rows.Next() {
 		var a ActivityRecord
-		var details, ipAddress *string
-		if err := rows.Scan(&a.ID, &a.Username, &a.ActivityType, &a.ActionName, &a.Description, &details, &ipAddress, &a.CreatedAt); err == nil {
+		var details, ipAddress, imgHash, imgName *string
+		if err := rows.Scan(&a.ID, &a.Username, &a.ActivityType, &a.ActionName, &a.Description, &details, &ipAddress, &imgHash, &imgName, &a.CreatedAt); err == nil {
 			if details != nil {
 				a.Details = *details
 			}
 			if ipAddress != nil {
 				a.IPAddress = *ipAddress
+			}
+			if imgHash != nil && *imgHash != "" {
+				a.ImageHash = *imgHash
+				a.ImageURL = "/api/uploads/blueprints/" + *imgHash + ".png"
+			}
+			if imgName != nil {
+				a.ImageName = *imgName
 			}
 			activities = append(activities, a)
 		}
@@ -170,9 +251,9 @@ func GetAllActivitiesHandler(w http.ResponseWriter, r *http.Request) {
 	var args []interface{}
 
 	if database.CurrentDriver == "mysql" {
-		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, created_at FROM activity_history WHERE created_at >= NOW() - INTERVAL 30 DAY"
+		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, image_hash, image_name, created_at FROM activity_history WHERE created_at >= NOW() - INTERVAL 30 DAY"
 	} else {
-		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, created_at FROM activity_history WHERE created_at >= datetime('now', '-30 days')"
+		query = "SELECT id, username, activity_type, action_name, description, details, ip_address, image_hash, image_name, created_at FROM activity_history WHERE created_at >= datetime('now', '-30 days')"
 	}
 
 	if targetUsername != "" {
@@ -198,13 +279,20 @@ func GetAllActivitiesHandler(w http.ResponseWriter, r *http.Request) {
 	activities := []ActivityRecord{}
 	for rows.Next() {
 		var a ActivityRecord
-		var details, ipAddress *string
-		if err := rows.Scan(&a.ID, &a.Username, &a.ActivityType, &a.ActionName, &a.Description, &details, &ipAddress, &a.CreatedAt); err == nil {
+		var details, ipAddress, imgHash, imgName *string
+		if err := rows.Scan(&a.ID, &a.Username, &a.ActivityType, &a.ActionName, &a.Description, &details, &ipAddress, &imgHash, &imgName, &a.CreatedAt); err == nil {
 			if details != nil {
 				a.Details = *details
 			}
 			if ipAddress != nil {
 				a.IPAddress = *ipAddress
+			}
+			if imgHash != nil && *imgHash != "" {
+				a.ImageHash = *imgHash
+				a.ImageURL = "/api/uploads/blueprints/" + *imgHash + ".png"
+			}
+			if imgName != nil {
+				a.ImageName = *imgName
 			}
 			activities = append(activities, a)
 		}
