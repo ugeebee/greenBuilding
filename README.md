@@ -1,9 +1,114 @@
-# Green Building Project
+# 🌿 Green Building: Integrated Energy & Blueprint Suite
+
+A unified platform combining **2D Architectural CAD Studio**, **AI-Powered Floor Plan Vision & Reader**, and **Thermal Heat Load & U-Value Simulation**.
+
+---
+
+## 🏗️ System Overview & Architecture
+
+```
+                  ┌───────────────────────────────────────────────┐
+                  │          Architectural Plan Input             │
+                  └──────────────┬─────────────────┬──────────────┘
+                                 │                 │
+              [Interactive 2D CAD]                 [Upload JPG / PNG / SVG]
+                                 │                 │
+                                 ▼                 ▼
+          ┌────────────────────────────┐     ┌────────────────────────────┐
+          │    Floor Plan Studio       │     │     Floor Plan Reader      │
+          │  - Single / Multi-room CAD │     │  - YOLO Segmentation (AI)  │
+          │  - Dual Wall Thickness     │     │  - Hybrid OpenCV Contours  │
+          │  - Doors, Windows & Swing  │     │  - OCR Text & Dimensions   │
+          │  - Daylight Ratio Analysis │     │  - Styled Visual Overlay   │
+          └──────────────┬─────────────┘     └─────────────┬──────────────┘
+                         │                                 │
+                         └────────────────┬────────────────┘
+                                          │  1-Click Transfer (Dimensions & Openings)
+                                          ▼
+                         ┌─────────────────────────────────┐
+                         │   Green Building Calculator     │
+                         │   - U-Value Database (ECBC/NBC) │
+                         │   - Solar Heat Gain Factor      │
+                         │   - Air Infiltration (ACH)      │
+                         │   - Envelope Heat Gain & Sizing │
+                         └─────────────────────────────────┘
+```
+
+---
+
+## 🚀 Key Modules
+
+### 1. 📐 Floor Plan Generator (CAD Studio)
+- **Interactive 2D Vector CAD Canvas**: Live SVG rendering with zoom, pan, grid snapping, and dimension lines.
+- **Single & Multi-Room Modes**: Create individual rooms or multi-room apartment layouts with real-time overlap and collision detection.
+- **Dual Wall Thickness Modeling**: Independent calibration for exterior envelope walls (e.g., 0.20m) vs interior partitions (e.g., 0.10m).
+- **Door & Window Placement**: Configurable wall side (N, S, E, W), position offset, width, hinge orientation, and swing direction.
+- **Green Building Daylight Compliance**: Real-time calculation of carpet area, gross built-up area, and Window-to-Floor Daylight Ratio (WFR $\ge 10\%$ NBC/LEED compliance indicator).
+- **1-Click Heat Load Transfer**: Export any room's dimensions and openings directly into the Green Building Calculator.
+
+### 2. 🔍 Floor Plan Reader (AI & Computer Vision)
+- **Deep Learning Instance Segmentation**: Utilizes trained YOLO segmentation models (`weights/best.pt`) to detect room polygons, doors, windows, and walls.
+- **Deterministic Hybrid Computer Vision**: OpenCV contour edge detection and OCR text association with zero hallucination.
+- **Sample Blueprint Gallery**: 1-click testing with pre-loaded blueprints (1-BHK Urban Apartment, Luxury Master Suite, Executive Office Suite, CAD Blueprint).
+- **Real-World Dimension Extraction**: Scale calibration (pixels per meter) with automatic length, width, and area ($m^2$ and $sq\ ft$) calculation.
+- **Annotated Visual Overlay**: Color-coded room zones, door swing arcs, window markings, and dimension pill tags.
+- **1-Click Room Simulation**: Send any detected room's geometry into the Heat Load Calculator.
+
+### 3. 🌡️ Green Building Heat Load Calculator
+- 9-step wizard for thermal energy simulation and envelope heat gain calculation.
+- Integrates comprehensive standard materials (k-values) and glazing databases (SHGC, U-values).
+- Calculates cooling and heating loads with inside/outside temperature differentials and ventilation ACH.
+- Saves calculation history to persistent SQLite database with report generation.
+
+---
+
+## 🔌 API Endpoints
+
+### Floor Plan Generator
+- `GET /api/floorplan/presets`: Built-in single room templates.
+- `GET /api/floorplan/multi-room-presets`: Multi-room apartment & commercial templates (1-BHK, 2-BHK, Executive Office).
+- `POST /api/floorplan/validate`: Single room boundary, opening overlap, and daylight compliance verification.
+- `POST /api/floorplan/validate-multi-room`: Multi-room layout validation, collision detection, carpet area, and efficiency metrics.
+
+### Floor Plan Reader
+- `GET /api/floorplan/samples`: Available sample blueprints with metadata.
+- `POST /api/floorplan/analyze`: Upload image (.png, .jpg, .svg) or select a sample for YOLO / Hybrid CV room and opening detection. Returns structured JSON + base64 overlay.
+
+### Core & Calculator
+- `POST /api/save`: Save calculation simulation to user history.
+- `GET /api/history`: Retrieve saved calculation history.
+- `POST /api/login` & `POST /api/signup`: User authentication (JWT).
+
+---
+
+## 🛠️ Development & Running
+
+### Prerequisites
+- **Go** (1.21+)
+- **Node.js** (v20+ or v22+)
+- **Python** (3.10+ with `ultralytics`, `opencv-python`, `torch`, `Pillow`)
+
+### Start Backend
+```bash
+cd backend
+go run main.go
+# Server starts on port 8080
+```
+
+### Start Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+# Vite runs on http://localhost:5173
+```
+
+---
+
+## 📜 Repository Notice & Sanitized Commit History
 
 > [!IMPORTANT]
-> **Repository Migration Notice:** This repository is the new official home for the Green Building project. Due to a configuration error in the previous repository's .gitignore that led to a security vulnerability, the original history has been archived privately. This repo contains the sanitized, final codebase with fresh security configurations.
-
-## Sanitized Commit History
+> **Repository Migration Notice:** This repository is the official home for the Green Building project. Due to a configuration error in the previous repository's .gitignore that led to a security vulnerability, the original history has been archived privately. This repo contains the sanitized, final codebase with fresh security configurations.
 
 | Date & Time | Commit Hash | Message |
 | :--- | :--- | :--- |

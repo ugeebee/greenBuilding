@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// 1. Generate a Password Hash
-	pass := "your_admin_password" // Change this
+	pass := "utkarsh" // Change this
 	hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	fmt.Println("HASHED_PASSWORD:", string(hash))
 

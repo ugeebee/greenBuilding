@@ -39,13 +39,32 @@ func main() {
 	mux.HandleFunc("/api/admin/users", handlers.AdminAuthMiddleware(handlers.GetAllUsersHandler))
 	mux.HandleFunc("/api/admin/user-history", handlers.AdminAuthMiddleware(handlers.GetUserHistoryHandler))
 
+	// Floor Plan Generator & Reader API Endpoints
+	mux.HandleFunc("/api/floorplan/presets", handlers.FloorPlanPresetsHandler)
+	mux.HandleFunc("/api/floorplan/multi-room-presets", handlers.FloorPlanMultiRoomPresetsHandler)
+	mux.HandleFunc("/api/floorplan/validate", handlers.FloorPlanValidateHandler)
+	mux.HandleFunc("/api/floorplan/validate-multi-room", handlers.FloorPlanValidateMultiRoomHandler)
+	mux.HandleFunc("/api/floorplan/samples", handlers.FloorPlanSamplesHandler)
+	mux.HandleFunc("/api/floorplan/analyze", handlers.FloorPlanAnalyzeHandler)
+
+	// Legacy aliases for standalone compatibility
+	mux.HandleFunc("/api/multi-room-presets", handlers.FloorPlanMultiRoomPresetsHandler)
+	mux.HandleFunc("/api/validate", handlers.FloorPlanValidateHandler)
+	mux.HandleFunc("/api/validate-multi-room", handlers.FloorPlanValidateMultiRoomHandler)
+
 	calcDirectory := "../frontend/calculator"
 	fileServer := http.FileServer(http.Dir(calcDirectory))
 
 	mux.Handle("/calculator/", handlers.AuthMiddleware(http.StripPrefix("/calculator/", fileServer).ServeHTTP))
 
 	origins := os.Getenv("ALLOWED_ORIGINS")
-	allowedOrigins := []string{"http://localhost:5500"}
+	allowedOrigins := []string{
+		"http://localhost:5500",
+		"http://localhost:5173",
+		"http://127.0.0.1:5173",
+		"http://localhost:3000",
+		"http://localhost:4173",
+	}
 	if origins != "" {
 		allowedOrigins = strings.Split(origins, ",")
 	}

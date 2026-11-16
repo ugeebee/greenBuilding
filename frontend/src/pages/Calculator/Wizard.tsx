@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Navbar from '../../components/Navbar';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Sparkles } from 'lucide-react';
 
 const surfaces = ['N', 'S', 'E', 'W', 'Roof'];
 const walls = ['N', 'S', 'E', 'W'];
@@ -43,6 +45,53 @@ export default function Wizard() {
   
   const [temps, setTemps] = useState({ inside: '', ach: '', outN: '', outS: '', outE: '', outW: '', outRoof: '', outFloor: '' });
   const [surfaceParams, setSurfaceParams] = useState<any>({});
+  const [importedSource, setImportedSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const prefillRaw = sessionStorage.getItem('gb_calculator_prefill');
+      if (prefillRaw) {
+        const prefill = JSON.parse(prefillRaw);
+        sessionStorage.removeItem('gb_calculator_prefill');
+        if (prefill.length) {
+          setRoom(r => ({
+            ...r,
+            length: prefill.length,
+            breadth: prefill.breadth || r.breadth,
+            height: prefill.height || '3.0',
+            unitLength: prefill.unitLength || 'm',
+            unitBreadth: prefill.unitBreadth || 'm',
+            unitHeight: prefill.unitHeight || 'm'
+          }));
+        }
+        if (prefill.doors && Array.isArray(prefill.doors)) {
+          setDoors(prefill.doors.map((d: any) => ({
+            wall: d.wall || 'S',
+            area: d.area || '1.89',
+            type: d.type || 'u',
+            name: d.name || 'Standard Door',
+            width: d.width || '0.9',
+            k: d.k || '',
+            u: d.u || '2.5'
+          })));
+        }
+        if (prefill.windows && Array.isArray(prefill.windows)) {
+          setWindows(prefill.windows.map((w: any) => ({
+            wall: w.wall || 'N',
+            area: w.area || '1.96',
+            glazingType: 'Single Glazing',
+            exposure: '',
+            shgc: w.shgc || '0.40',
+            uValue: w.uValue || '3.0',
+            sgf: '0.86'
+          })));
+        }
+        setImportedSource(prefill.source || 'Floor Plan Tool');
+      }
+    } catch (err) {
+      console.error("Prefill parse error:", err);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchDbs = async () => {
@@ -529,8 +578,23 @@ export default function Wizard() {
   if (loadingDb) return <div className="p-12 text-center text-xl">Loading Material Databases...</div>;
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl pt-8 pb-20">
-      <div className="mb-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950">
+      <Navbar title="Heat Load Calculator" />
+      <div className="container mx-auto p-6 max-w-4xl pt-6 pb-20">
+        {importedSource && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-sm flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-5 h-5 text-emerald-600 shrink-0" />
+              <div>
+                <span className="font-bold">Imported from {importedSource}:</span> Room dimensions ({room.length}m × {room.breadth}m) and {doors.length + windows.length} openings pre-filled!
+              </div>
+            </div>
+            <button onClick={() => setImportedSource(null)} className="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline">
+              Dismiss
+            </button>
+          </div>
+        )}
+        <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Room Data Collector</h1>
         <div className="w-full bg-slate-200 rounded-full h-2.5">
           <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${(step / 9) * 100}%` }}></div>
@@ -798,6 +862,7 @@ export default function Wizard() {
             {step === 9 ? "Calculate Final Results" : "Continue to Next Step →"}
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );
