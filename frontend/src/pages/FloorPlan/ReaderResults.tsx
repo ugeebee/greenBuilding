@@ -19,7 +19,10 @@ import {
   Undo2,
   Compass,
   DoorClosed,
-  Square
+  Square,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 
 interface BoundingBox {
@@ -128,6 +131,32 @@ export default function FloorPlanResults() {
   // Dragging & Interaction
   const [dragState, setDragState] = useState<DragState | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Zoom & Pan Camera state
+  const [zoom, setZoom] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Zoom handlers
+  const handleZoomIn = () => {
+    setZoom((z) => Math.min(3.5, Math.round((z + 0.2) * 10) / 10));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((z) => Math.max(0.4, Math.round((z - 0.2) * 10) / 10));
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+    setZoom((z) => Math.min(3.5, Math.max(0.4, Math.round(z * zoomFactor * 100) / 100)));
+  };
 
   // Initialize data on mount
   useEffect(() => {
@@ -270,8 +299,35 @@ export default function FloorPlanResults() {
     });
   };
 
-  // Dragging move
+  // Canvas Pan Mouse Down
+  const handleSvgMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as SVGElement | HTMLElement;
+    const isBg = target === svgRef.current || target.tagName === 'image' || target.tagName === 'svg';
+    if (isBg) {
+      setSelectedElement(null);
+      setIsPanning(true);
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  // Dragging / Panning move
   const handleSvgMouseMove = (e: React.MouseEvent) => {
+    if (isPanning) {
+      const svgEl = svgRef.current;
+      if (!svgEl) return;
+      const rect = svgEl.getBoundingClientRect();
+      const currentZoom = Math.max(0.4, zoom);
+      const scale = (1000 / currentZoom) / (rect.width || 500);
+      const dx = (e.clientX - panStart.x) * scale;
+      const dy = (e.clientY - panStart.y) * scale;
+      setPanOffset((prev) => ({
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+      setPanStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
     if (!dragState || !dragState.isDragging) return;
     const { x, y } = getSvgCoordinates(e);
     const dx = x - dragState.startX;
@@ -335,6 +391,7 @@ export default function FloorPlanResults() {
 
   const handleSvgMouseUp = () => {
     setDragState(null);
+    setIsPanning(false);
   };
 
   // ROOM OPERATIONS
@@ -645,6 +702,14 @@ export default function FloorPlanResults() {
     return windows.find((w) => w.id === selectedElement.id) || null;
   }, [selectedElement, windows]);
 
+  // Camera ViewBox calculation for Interactive CAD
+  const currentZoom = Math.max(0.4, zoom);
+  const viewWidth = 1000 / currentZoom;
+  const viewHeight = 1000 / currentZoom;
+  const viewBoxX = 500 - viewWidth / 2 - panOffset.x;
+  const viewBoxY = 500 - viewHeight / 2 - panOffset.y;
+  const computedViewBox = `${viewBoxX} ${viewBoxY} ${viewWidth} ${viewHeight}`;
+
   // If no analysis is loaded
   if (!result) {
     return (
@@ -815,6 +880,42 @@ export default function FloorPlanResults() {
                   </button>
                 </div>
 
+                <div className="h-4 w-px bg-slate-300 dark:bg-zinc-700" />
+
+                {/* Zoom Controls */}
+                <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-zinc-800 rounded-lg p-0.5 border">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-white dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200"
+                    onClick={handleZoomOut}
+                    title="Zoom Out (Unzoom)"
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </Button>
+                  <span className="text-[11px] font-mono font-medium px-1 min-w-[38px] text-center select-none text-slate-700 dark:text-zinc-300">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-white dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200"
+                    onClick={handleZoomIn}
+                    title="Zoom In"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-white dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200"
+                    onClick={handleResetZoom}
+                    title="Reset Zoom & Pan"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                  </Button>
+                </div>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -828,13 +929,53 @@ export default function FloorPlanResults() {
             </div>
 
             {/* Drawing Area */}
-            <div className="p-4 flex-1 flex items-center justify-center bg-slate-900 min-h-[460px] overflow-hidden relative">
+            <div 
+              className="p-4 flex-1 flex items-center justify-center bg-slate-900 min-h-[460px] overflow-hidden relative"
+              onWheel={handleWheel}
+            >
+              {/* Floating Zoom / Pan Controls Overlay */}
+              <div className="absolute top-6 right-6 z-10 flex flex-col items-center gap-1 bg-slate-800/90 backdrop-blur-xs border border-slate-700 rounded-lg p-1 shadow-lg">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-slate-200 hover:text-white hover:bg-slate-700/80"
+                  onClick={handleZoomIn}
+                  title="Zoom In (+)"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </Button>
+                <div className="text-[10px] font-mono text-center text-slate-300 select-none py-0.5 border-y border-slate-700 w-full">
+                  {Math.round(zoom * 100)}%
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-slate-200 hover:text-white hover:bg-slate-700/80"
+                  onClick={handleZoomOut}
+                  title="Zoom Out / Unzoom (-)"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-slate-200 hover:text-white hover:bg-slate-700/80"
+                  onClick={handleResetZoom}
+                  title="Reset Zoom & Pan"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </Button>
+              </div>
+
               {viewMode === 'interactive' ? (
                 <div className="relative w-full h-[460px] flex items-center justify-center">
                   <svg
                     ref={svgRef}
-                    viewBox="0 0 1000 1000"
-                    className="w-full h-full max-h-[460px] select-none rounded border border-slate-800 shadow-lg cursor-crosshair"
+                    viewBox={computedViewBox}
+                    className={`w-full h-full max-h-[460px] select-none rounded border border-slate-800 shadow-lg ${
+                      isPanning ? 'cursor-grabbing' : zoom > 1 ? 'cursor-grab' : 'cursor-crosshair'
+                    }`}
+                    onMouseDown={handleSvgMouseDown}
                     onMouseMove={handleSvgMouseMove}
                     onMouseUp={handleSvgMouseUp}
                     onMouseLeave={handleSvgMouseUp}
@@ -1028,25 +1169,73 @@ export default function FloorPlanResults() {
                   </svg>
                 </div>
               ) : viewMode === 'overlay' && result.overlay_base64 ? (
-                <img
-                  src={result.overlay_base64}
-                  alt="AI Visual Overlay"
-                  className="max-h-[460px] object-contain rounded border border-slate-800 shadow-lg"
-                />
+                <div
+                  className="w-full h-full max-h-[460px] flex items-center justify-center overflow-hidden cursor-grab"
+                  onMouseDown={(e) => {
+                    setIsPanning(true);
+                    setPanStart({ x: e.clientX, y: e.clientY });
+                  }}
+                  onMouseMove={(e) => {
+                    if (isPanning) {
+                      setPanOffset((prev) => ({
+                        x: prev.x + (e.clientX - panStart.x),
+                        y: prev.y + (e.clientY - panStart.y),
+                      }));
+                      setPanStart({ x: e.clientX, y: e.clientY });
+                    }
+                  }}
+                  onMouseUp={() => setIsPanning(false)}
+                  onMouseLeave={() => setIsPanning(false)}
+                >
+                  <img
+                    src={result.overlay_base64}
+                    alt="AI Visual Overlay"
+                    className="max-h-[460px] object-contain rounded border border-slate-800 shadow-lg select-none transition-transform duration-75"
+                    style={{
+                      transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+                      transformOrigin: 'center center',
+                    }}
+                    draggable={false}
+                  />
+                </div>
               ) : previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="Original Blueprint"
-                  className="max-h-[460px] object-contain rounded border border-slate-800 shadow-lg"
-                />
+                <div
+                  className="w-full h-full max-h-[460px] flex items-center justify-center overflow-hidden cursor-grab"
+                  onMouseDown={(e) => {
+                    setIsPanning(true);
+                    setPanStart({ x: e.clientX, y: e.clientY });
+                  }}
+                  onMouseMove={(e) => {
+                    if (isPanning) {
+                      setPanOffset((prev) => ({
+                        x: prev.x + (e.clientX - panStart.x),
+                        y: prev.y + (e.clientY - panStart.y),
+                      }));
+                      setPanStart({ x: e.clientX, y: e.clientY });
+                    }
+                  }}
+                  onMouseUp={() => setIsPanning(false)}
+                  onMouseLeave={() => setIsPanning(false)}
+                >
+                  <img
+                    src={previewUrl}
+                    alt="Original Blueprint"
+                    className="max-h-[460px] object-contain rounded border border-slate-800 shadow-lg select-none transition-transform duration-75"
+                    style={{
+                      transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
+                      transformOrigin: 'center center',
+                    }}
+                    draggable={false}
+                  />
+                </div>
               ) : (
                 <div className="text-white text-xs">No image to display</div>
               )}
             </div>
 
             {/* Canvas Footer Legend */}
-            <div className="px-4 py-2 border-t bg-slate-50 dark:bg-zinc-800/40 flex items-center justify-between text-[11px] text-muted-foreground">
-              <div className="flex items-center gap-3">
+            <div className="px-4 py-2 border-t bg-slate-50 dark:bg-zinc-800/40 flex items-center justify-between text-[11px] text-muted-foreground flex-wrap gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
                 <span className="flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" /> Rooms (drag or resize handle)
                 </span>
@@ -1057,7 +1246,10 @@ export default function FloorPlanResults() {
                   <Compass className="w-3.5 h-3.5 text-sky-600 inline" /> Windows (W)
                 </span>
               </div>
-              <span>Click element to select and edit</span>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-slate-500">Scroll to zoom · Drag background to pan</span>
+                <span>Click element to select and edit</span>
+              </div>
             </div>
           </div>
 
