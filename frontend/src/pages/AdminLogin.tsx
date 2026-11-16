@@ -129,17 +129,22 @@ export default function AdminLogin() {
               Verify & Login
             </Button>
 
-            <div className="pt-3 text-center border-t border-zinc-800/80 space-y-1">
-              <span className="text-[11px] text-zinc-400 font-medium block">
-                Dev Admin: <strong className="text-zinc-200">utkarsh</strong> | Password: <strong className="text-zinc-200">utkarsh</strong>
-              </span>
-              <span className="text-[10px] text-zinc-500 block">
-                2FA: Authenticator app or dev bypass code <strong className="text-emerald-400 font-mono">000000</strong>
-              </span>
+            {import.meta.env.DEV && (
+              <div className="pt-3 text-center border-t border-zinc-800/80 space-y-1">
+                <span className="text-[11px] text-zinc-400 font-medium block">
+                  Dev Admin: <strong className="text-zinc-200">utkarsh</strong> | Password: <strong className="text-zinc-200">utkarsh</strong>
+                </span>
+                <span className="text-[10px] text-zinc-500 block">
+                  2FA: Authenticator app or dev bypass code <strong className="text-emerald-400 font-mono">000000</strong>
+                </span>
+              </div>
+            )}
+
+            <div className="pt-2 text-center">
               <button
                 type="button"
                 onClick={() => navigate('/dashboard')}
-                className="text-[11px] text-zinc-500 hover:text-emerald-400 hover:underline pt-2 block mx-auto cursor-pointer"
+                className="text-[11px] text-zinc-500 hover:text-emerald-400 hover:underline block mx-auto cursor-pointer"
               >
                 ← Return to User Dashboard
               </button>

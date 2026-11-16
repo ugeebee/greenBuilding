@@ -3,7 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
 	"time"
+
+	"greenbuilding-backend/database"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pquerna/otp/totp"
@@ -30,9 +34,12 @@ func AdminLoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	valid := totp.Validate(req.Code, admin.TOTPSecret)
-	if !valid && (req.Code == "000000" || req.Code == "123456" || req.Code == "admin") {
+	// Dev bypass is strictly permitted ONLY in development environment
+	isDev := strings.ToLower(database.CurrentEnv) == "development" || strings.ToLower(os.Getenv("APP_ENV")) == "development"
+	if !valid && isDev && (req.Code == "000000" || req.Code == "123456") {
 		valid = true
 	}
+
 	if !valid {
 		http.Error(w, "Invalid 2FA code", http.StatusUnauthorized)
 		return
