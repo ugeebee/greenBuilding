@@ -97,7 +97,7 @@ def visualize_floorplan(
                 else:
                     dim_str = f"{r.norm_length:.0f}x{r.norm_width:.0f} (norm)"
                 if r.area_percentage:
-                    dim_str += f" • {r.area_percentage:.1f}%"
+                    dim_str += f" | {r.area_percentage:.1f}%"
                 full_text = f"{label_text}\n{dim_str}"
             else:
                 full_text = label_text

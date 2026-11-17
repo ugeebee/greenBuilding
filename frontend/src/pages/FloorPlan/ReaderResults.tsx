@@ -179,7 +179,8 @@ export default function FloorPlanResults() {
       const res = initialData.result;
       setResult(res);
       setOriginalResult(JSON.parse(JSON.stringify(res)));
-      if (initialData.previewUrl) setPreviewUrl(initialData.previewUrl);
+      const bestPreview = initialData.previewUrl || (res as any).image_url || res.overlay_base64 || null;
+      if (bestPreview) setPreviewUrl(bestPreview);
       if (initialData.ppm) setPpm(initialData.ppm);
 
       const rawRooms = (res.analysis.rooms || []).filter((r) => r.name !== 'wall');
@@ -765,9 +766,19 @@ export default function FloorPlanResults() {
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                 Select Another Plan
               </Button>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-semibold">
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                  result?.method_used === 'fallback'
+                    ? 'bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                    : 'bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300'
+                }`}
+              >
                 <Sparkles className="w-3 h-3" />
-                Hybrid CV Extracted
+                {result?.method_used === 'fallback'
+                  ? 'Visual Spatial Bounding'
+                  : result?.method_used === 'segmentation'
+                  ? 'YOLO AI Segmented'
+                  : 'Hybrid CV Extracted'}
               </div>
             </div>
             <h1 className="text-2xl font-extrabold tracking-tight">Blueprint CAD Editor & Analysis</h1>
@@ -840,6 +851,14 @@ export default function FloorPlanResults() {
             </p>
           </div>
         </div>
+
+        {/* Optional Warning Notice */}
+        {(result as any).warning && (
+          <div className="mb-6 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{(result as any).warning}</span>
+          </div>
+        )}
 
         {/* Visualizer & Inspector Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -998,7 +1017,7 @@ export default function FloorPlanResults() {
                         y="0"
                         width="1000"
                         height="1000"
-                        preserveAspectRatio="xMidYMid meet"
+                        preserveAspectRatio="none"
                         opacity={0.88}
                       />
                     )}

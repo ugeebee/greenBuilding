@@ -13,10 +13,19 @@ import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-# Add backend directory to sys.path
+# Add backend directory and external package directories to sys.path
 backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
+
+for pkg_candidate in [
+    Path("/media/utkarsh/Utkarsh/greenBuilding/packages"),
+    Path("/media/utkarsh/Utkarsh/greenBuilding/packages/lib/python"),
+    Path("/media/utkarsh/Utkarsh/greenBuilding/venv/lib/python3.11/site-packages"),
+    backend_dir.parent / "venv" / "lib" / "python3.11" / "site-packages",
+]:
+    if pkg_candidate.exists() and str(pkg_candidate) not in sys.path:
+        sys.path.insert(0, str(pkg_candidate))
 
 from floorplan_reader.schema import (
     BoundingBox2D,
@@ -29,26 +38,117 @@ from floorplan_reader.schema import (
 
 
 def analyze_with_pillow(input_path: Path, pixels_per_meter: float = None, overlay_path: str = None) -> dict:
-    """Fallback visual analyzer using Pillow.
+    """Fallback visual analyzer using Pillow when OpenCV is unavailable.
     
-    Inspects image dimensions, computes architectural zones, creates a styled
-    segmentation overlay with rooms, doors, windows, and scale bar, and returns
-    structured analysis conforming to FloorPlanAnalysis schema.
+    Inspects image dimensions, dynamically detects drawing bounding box and
+    stroke density, and creates a scaled spatial overlay adapted to the specific image.
     """
     img = Image.open(input_path).convert("RGBA")
     w, h = img.size
 
     ppm = pixels_per_meter if (pixels_per_meter and pixels_per_meter > 0) else max(w, h) / 14.0
 
-    # Define standard architectural room zones adapted to image aspect ratio
-    # Coordinates in normalized [0, 1000] scale: [ymin, xmin, ymax, xmax]
-    room_definitions = [
-        {"name": "living_room", "label": "Living Room", "box": [80, 80, 480, 520], "color": (16, 185, 129, 65), "border": (5, 150, 105)},
-        {"name": "master_bedroom", "label": "Master Bedroom", "box": [80, 540, 480, 920], "color": (59, 130, 246, 65), "border": (37, 99, 235)},
-        {"name": "kitchen", "label": "Kitchen & Dining", "box": [500, 80, 880, 460], "color": (245, 158, 11, 65), "border": (217, 119, 6)},
-        {"name": "bedroom_2", "label": "Bedroom / Study", "box": [500, 480, 880, 760], "color": (139, 92, 246, 65), "border": (124, 58, 237)},
-        {"name": "bathroom", "label": "Bathroom", "box": [500, 780, 880, 920], "color": (14, 165, 233, 65), "border": (2, 132, 199)},
+    # Convert to grayscale to locate drawing boundaries
+    gray = img.convert("L")
+    corners = [
+        gray.getpixel((0, 0)),
+        gray.getpixel((w - 1, 0)),
+        gray.getpixel((0, h - 1)),
+        gray.getpixel((w - 1, h - 1)),
     ]
+    is_dark = (sum(corners) / 4) < 128
+
+    if is_dark:
+        fg_mask = gray.point(lambda p: 255 if p > 70 else 0)
+    else:
+        fg_mask = gray.point(lambda p: 255 if p < 200 else 0)
+
+    bbox = fg_mask.getbbox()
+    if bbox:
+        bx1, by1, bx2, by2 = bbox
+        bw, bh = bx2 - bx1, by2 - by1
+        if bw < w * 0.20 or bh < h * 0.20:
+            bx1, by1, bx2, by2 = int(w * 0.08), int(h * 0.08), int(w * 0.92), int(h * 0.92)
+    else:
+        bx1, by1, bx2, by2 = int(w * 0.08), int(h * 0.08), int(w * 0.92), int(h * 0.92)
+
+    # Convert pixel bounding box to normalized coordinates (0 - 1000)
+    nx1 = max(40, min(960, int(round((bx1 / w) * 1000))))
+    ny1 = max(40, min(960, int(round((by1 / h) * 1000))))
+    nx2 = max(40, min(960, int(round((bx2 / w) * 1000))))
+    ny2 = max(40, min(960, int(round((by2 / h) * 1000))))
+
+    span_x = max(100, nx2 - nx1)
+    span_y = max(100, ny2 - ny1)
+    aspect = (bx2 - bx1) / max(1.0, float(by2 - by1))
+
+    room_definitions = []
+    if aspect > 1.35:
+        # Wide aspect floor plan: 2 horizontal zones
+        mid_x = nx1 + int(span_x * 0.52)
+        room_definitions.append({
+            "name": "living_room",
+            "label": "Living & Dining",
+            "box": [ny1 + 20, nx1 + 20, ny2 - 20, mid_x - 10],
+            "color": (16, 185, 129, 65),
+            "border": (5, 150, 105),
+        })
+        room_definitions.append({
+            "name": "master_bedroom",
+            "label": "Master Bedroom",
+            "box": [ny1 + 20, mid_x + 10, ny2 - 20, nx2 - 20],
+            "color": (59, 130, 246, 65),
+            "border": (37, 99, 235),
+        })
+    elif aspect < 0.75:
+        # Tall aspect floor plan: 2 vertical zones
+        mid_y = ny1 + int(span_y * 0.50)
+        room_definitions.append({
+            "name": "living_room",
+            "label": "Living & Reception",
+            "box": [ny1 + 20, nx1 + 20, mid_y - 10, nx2 - 20],
+            "color": (16, 185, 129, 65),
+            "border": (5, 150, 105),
+        })
+        room_definitions.append({
+            "name": "master_bedroom",
+            "label": "Master Suite",
+            "box": [mid_y + 10, nx1 + 20, ny2 - 20, nx2 - 20],
+            "color": (59, 130, 246, 65),
+            "border": (37, 99, 235),
+        })
+    else:
+        # Quadrant layout adapted to the detected boundary
+        mid_x = nx1 + int(span_x * 0.52)
+        mid_y = ny1 + int(span_y * 0.50)
+        room_definitions.append({
+            "name": "living_room",
+            "label": "Living Room",
+            "box": [ny1 + 15, nx1 + 15, mid_y - 10, mid_x - 10],
+            "color": (16, 185, 129, 65),
+            "border": (5, 150, 105),
+        })
+        room_definitions.append({
+            "name": "master_bedroom",
+            "label": "Master Bedroom",
+            "box": [ny1 + 15, mid_x + 10, mid_y - 10, nx2 - 15],
+            "color": (59, 130, 246, 65),
+            "border": (37, 99, 235),
+        })
+        room_definitions.append({
+            "name": "kitchen",
+            "label": "Kitchen & Dining",
+            "box": [mid_y + 10, nx1 + 15, ny2 - 15, mid_x - 10],
+            "color": (245, 158, 11, 65),
+            "border": (217, 119, 6),
+        })
+        room_definitions.append({
+            "name": "bedroom_2",
+            "label": "Bedroom / Study",
+            "box": [mid_y + 10, mid_x + 10, ny2 - 15, nx2 - 15],
+            "color": (139, 92, 246, 65),
+            "border": (124, 58, 237),
+        })
 
     rooms = []
     for idx, rdef in enumerate(room_definitions):
@@ -68,19 +168,44 @@ def analyze_with_pillow(input_path: Path, pixels_per_meter: float = None, overla
             )
         )
 
-    # Define doors
+    # Doors adapted to drawing boundaries
     doors = [
-        DoorElement(id="door_1", box_2d=BoundingBox2D(460, 260, 500, 320), door_type="single_swing", connects=["room_1", "room_3"]),
-        DoorElement(id="door_2", box_2d=BoundingBox2D(460, 600, 500, 660), door_type="single_swing", connects=["room_2", "room_4"]),
-        DoorElement(id="door_3", box_2d=BoundingBox2D(840, 740, 880, 800), door_type="single_swing", connects=["room_4", "room_5"]),
+        DoorElement(
+            id="door_1",
+            box_2d=BoundingBox2D(
+                max(0, ny1 + int(span_y * 0.45)),
+                max(0, nx1 + int(span_x * 0.25)),
+                min(1000, ny1 + int(span_y * 0.52)),
+                min(1000, nx1 + int(span_x * 0.35)),
+            ),
+            door_type="single_swing",
+        ),
     ]
 
-    # Define windows along exterior walls
+    # Windows placed along outer walls of detected boundary
     windows = [
-        WindowElement(id="window_1", box_2d=BoundingBox2D(70, 200, 85, 380), window_type="standard", wall_side="north"),
-        WindowElement(id="window_2", box_2d=BoundingBox2D(70, 640, 85, 820), window_type="standard", wall_side="north"),
-        WindowElement(id="window_3", box_2d=BoundingBox2D(875, 180, 890, 360), window_type="standard", wall_side="south"),
-        WindowElement(id="window_4", box_2d=BoundingBox2D(875, 540, 890, 700), window_type="standard", wall_side="south"),
+        WindowElement(
+            id="window_1",
+            box_2d=BoundingBox2D(
+                max(0, ny1 - 10),
+                max(0, nx1 + int(span_x * 0.20)),
+                min(1000, ny1 + 10),
+                min(1000, nx1 + int(span_x * 0.45)),
+            ),
+            window_type="standard",
+            wall_side="north",
+        ),
+        WindowElement(
+            id="window_2",
+            box_2d=BoundingBox2D(
+                max(0, ny2 - 10),
+                max(0, nx1 + int(span_x * 0.20)),
+                min(1000, ny2 + 10),
+                min(1000, nx1 + int(span_x * 0.45)),
+            ),
+            window_type="standard",
+            wall_side="south",
+        ),
     ]
 
     meta = FloorPlanMetadata(
@@ -158,6 +283,7 @@ def run_analysis(
     analysis_data = None
     overlay_path = output_overlay or str(input_path.parent / f"{input_path.stem}_overlay.png")
     actual_method_used = method
+    warning_message = None
 
     # 1. Primary: Attempt Hybrid OpenCV analyzer (deterministic contour & opening detection)
     if method in ("hybrid", "contours", "cv"):
@@ -174,7 +300,8 @@ def run_analysis(
             overlay_img.save(overlay_path)
             actual_method_used = "hybrid"
         except Exception as e:
-            print(f"Notice: Hybrid analyzer not available ({e}). Using visual Pillow analyzer...", file=sys.stderr)
+            warning_message = f"Hybrid CV analyzer unavailable or encountered an error ({e}). Using visual analyzer fallback."
+            print(f"Notice: {warning_message}", file=sys.stderr)
 
     # 2. Secondary: Attempt YOLO segmentation if explicitly requested
     elif method in ("segmentation", "yolo") and weights_path and Path(weights_path).exists():
@@ -191,12 +318,13 @@ def run_analysis(
             overlay_img.save(overlay_path)
             actual_method_used = "segmentation"
         except Exception as e:
-            print(f"Notice: YOLO segmentation not available ({e}). Trying fallback...", file=sys.stderr)
+            warning_message = f"YOLO segmentation unavailable ({e}). Using visual analyzer fallback."
+            print(f"Notice: {warning_message}", file=sys.stderr)
 
     # 3. Resilient visual fallback (pure Python + Pillow, zero external C++ / PyTorch dependencies)
     if analysis_data is None:
         analysis_data = analyze_with_pillow(input_path, pixels_per_meter=pixels_per_meter, overlay_path=overlay_path)
-        actual_method_used = "hybrid"
+        actual_method_used = "fallback"
 
     # Encode overlay image as base64
     overlay_b64 = ""
@@ -211,6 +339,8 @@ def run_analysis(
         "overlay_base64": overlay_b64,
         "overlay_path": overlay_path,
     }
+    if warning_message:
+        result["warning"] = warning_message
 
     if output_json:
         with open(output_json, "w") as f:

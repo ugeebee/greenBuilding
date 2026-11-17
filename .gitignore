@@ -1,17 +1,40 @@
+# Environment and Secrets
 .env
-.env.local
-.vscode
-.github
+.env*
+.env.*
+*.env
+*.env.*
+**/.env
+**/.env*
+**/.env.*
+
+# IDE and Editor
+.vscode/
+.idea/
+.github/
+
+# Database files
 *.db
 *.db-shm
 *.db-wal
+
+# Python artifacts
 __pycache__/
 *.pyc
 **/*.pyc
+venv/
+.venv/
+
+# Node / Frontend build artifacts
 node_modules/
 dist/
+dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+
+# Logs and runtime outputs
 *.log
+logs/
 *_overlay.png
 uploads/
 **/uploads/
-venv

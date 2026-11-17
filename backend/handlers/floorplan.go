@@ -832,7 +832,18 @@ func FloorPlanAnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command(pythonBin, cmdArgs...)
 	scriptDir := filepath.Dir(scriptPath)
 	backendDir := filepath.Dir(scriptDir)
-	cmd.Env = append(os.Environ(), "PYTHONPATH="+backendDir+":"+scriptDir)
+
+	pythonPath := backendDir + ":" + scriptDir
+	for _, extra := range []string{
+		"/media/utkarsh/Utkarsh/greenBuilding/packages",
+		"/media/utkarsh/Utkarsh/greenBuilding/packages/lib/python",
+		filepath.Join(backendDir, "..", "venv", "lib", "python3.11", "site-packages"),
+	} {
+		if dirExists(extra) {
+			pythonPath = extra + ":" + pythonPath
+		}
+	}
+	cmd.Env = append(os.Environ(), "PYTHONPATH="+pythonPath)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -974,18 +985,46 @@ func fileExists(p string) bool {
 	return err == nil && !info.IsDir()
 }
 
+func dirExists(p string) bool {
+	info, err := os.Stat(p)
+	return err == nil && info.IsDir()
+}
+
 func findPythonBin() string {
-	known := []string{
-		"/home/utkarsh/Desktop/floorPlanReader/.venv/bin/python",
+	// 1. Check explicit environment overrides
+	if envPy := os.Getenv("PYTHON_BIN"); envPy != "" && fileExists(envPy) {
+		return envPy
+	}
+	if venv := os.Getenv("VIRTUAL_ENV"); venv != "" {
+		py := filepath.Join(venv, "bin", "python")
+		if fileExists(py) {
+			return py
+		}
+	}
+
+	// 2. Candidate paths (check virtual environments first, then system python)
+	candidates := []string{
+		filepath.Join("venv", "bin", "python"),
+		filepath.Join("..", "venv", "bin", "python"),
+		"/home/utkarsh/Desktop/greenBuilding/venv/bin/python",
+		"/media/utkarsh/Utkarsh/greenBuilding/venv/bin/python",
 		"python3",
 		"python",
 	}
-	for _, p := range known {
-		if _, err := exec.LookPath(p); err == nil {
-			return p
-		}
-		if fileExists(p) {
-			return p
+
+	for _, p := range candidates {
+		if strings.Contains(p, string(filepath.Separator)) {
+			if fileExists(p) {
+				abs, err := filepath.Abs(p)
+				if err == nil {
+					return abs
+				}
+				return p
+			}
+		} else {
+			if path, err := exec.LookPath(p); err == nil {
+				return path
+			}
 		}
 	}
 	return ""

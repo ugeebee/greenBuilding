@@ -53,8 +53,8 @@ class LLMReasoningPayloadBuilder:
         if path and Path(path).exists():
             return Path(path)
         candidates = [
-            Path("weights/rtx4050_best.pt"),
             Path("weights/best.pt"),
+            Path("weights/rtx4050_best.pt"),
             Path("best.pt"),
         ]
         for c in candidates:
